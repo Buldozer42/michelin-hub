@@ -1,0 +1,310 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Articles — Test console{% endblock %}
+
+{% block stylesheets %}
+<style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #222; }
+    h1 { margin-top: 0; }
+    .layout { display: flex; gap: 2rem; align-items: flex-start; }
+    .panel { background: #fafafa; border: 1px solid #ddd; border-radius: 8px; padding: 1.25rem; }
+    .form-panel { flex: 0 0 480px; }
+    .list-panel { flex: 1; min-width: 0; }
+    label { display: block; font-weight: 600; margin: 0.75rem 0 0.25rem; font-size: 0.9rem; }
+    input[type=text], input[type=number], input[type=datetime-local], select, textarea {
+        width: 100%; box-sizing: border-box; padding: 0.4rem; font-size: 0.9rem;
+    }
+    select[multiple] { height: 6rem; }
+    .actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
+    button { cursor: pointer; padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid #ccc; background: #fff; }
+    button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    button.danger { background: #dc2626; color: #fff; border-color: #dc2626; font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    button.small { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #e5e5e5; vertical-align: top; }
+    .quick-add { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .quick-add input { flex: 1; }
+    #status { margin: 0.75rem 0; font-size: 0.85rem; }
+    #status.error { color: #dc2626; }
+    #status.ok { color: #16a34a; }
+    .muted { color: #888; font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<h1>Article test console</h1>
+<p class="muted">Internal page for exercising the <code>/api/articles</code>, <code>/api/categories</code> and <code>/api/tags</code> CRUD endpoints. Not part of the public API.</p>
+<div id="status"></div>
+
+<div class="layout">
+    <div class="panel form-panel">
+        <h2 id="form-title">New article</h2>
+        <form id="article-form">
+            <input type="hidden" id="article-id">
+
+            <label for="title">Title</label>
+            <input type="text" id="title" required>
+
+            <label for="slug">Slug</label>
+            <input type="text" id="slug" required>
+
+            <label for="category">Category</label>
+            <select id="category" required>
+                <option value="" disabled selected>Choose a category…</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="tags">Tags <span class="muted">(ctrl/cmd-click for multiple)</span></label>
+            <select id="tags" multiple>
+                {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="excerpt">Excerpt</label>
+            <textarea id="excerpt" rows="4"></textarea>
+
+            <label for="content">Content</label>
+            <textarea id="content" rows="10" required></textarea>
+
+            <label for="coverImage">Cover image URL</label>
+            <input type="text" id="coverImage">
+
+            <label for="viewCount">View count</label>
+            <input type="number" id="viewCount" value="0" min="0">
+
+            <label for="publishedAt">Published at</label>
+            <input type="datetime-local" id="publishedAt">
+
+            <div class="actions">
+                <button type="submit" class="primary" id="submit-btn">Create article</button>
+                <button type="button" id="cancel-edit" style="display:none;">Cancel</button>
+            </div>
+        </form>
+
+        <hr>
+        <h3>Quick-add category</h3>
+        <div class="quick-add">
+            <input type="text" id="new-category-name" placeholder="Name">
+            <input type="text" id="new-category-slug" placeholder="Slug">
+            <button id="add-category" class="small">Add</button>
+        </div>
+
+        <h3>Quick-add tag</h3>
+        <div class="quick-add">
+            <input type="text" id="new-tag-name" placeholder="Name">
+            <input type="text" id="new-tag-slug" placeholder="Slug">
+            <button id="add-tag" class="small">Add</button>
+        </div>
+    </div>
+
+    <div class="panel list-panel">
+        <h2>Articles</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Tags</th>
+                    <th>Views</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="article-rows">
+                {% for article in articles %}
+                    <tr data-id="{{ article.id }}">
+                        <td>
+                            <strong>{{ article.title }}</strong><br>
+                            <span class="muted">/{{ article.slug }}</span>
+                        </td>
+                        <td>{{ article.category?.name }}</td>
+                        <td>{{ article.tags|map(t => t.name)|join(', ') }}</td>
+                        <td>{{ article.viewCount }}</td>
+                        <td>
+                            <button class="small edit-btn" data-id="{{ article.id }}">Edit</button>
+                            <button class="danger delete-btn" data-id="{{ article.id }}">Delete</button>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="muted">No articles yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+tinymce.init({ selector: '#excerpt', height: 150, menubar: false, plugins: 'lists link', toolbar: 'undo redo | bold italic | bullist numlist | link' });
+tinymce.init({ selector: '#content', height: 350, menubar: false, plugins: 'lists link image code table', toolbar: 'undo redo | blocks | bold italic | bullist numlist | link image table | code' });
+
+const statusEl = document.getElementById('status');
+function setStatus(message, isError) {
+    statusEl.textContent = message;
+    statusEl.className = isError ? 'error' : 'ok';
+}
+
+async function api(path, options = {}) {
+    const response = await fetch(path, {
+        ...options,
+        headers: { 'Accept': 'application/ld+json', ...(options.headers || {}) },
+    });
+    if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`${response.status} ${response.statusText}: ${body}`);
+    }
+    return response.status === 204 ? null : response.json();
+}
+
+const form = document.getElementById('article-form');
+const idField = document.getElementById('article-id');
+const submitBtn = document.getElementById('submit-btn');
+const cancelBtn = document.getElementById('cancel-edit');
+const formTitle = document.getElementById('form-title');
+
+function resetForm() {
+    form.reset();
+    idField.value = '';
+    tinymce.get('excerpt').setContent('');
+    tinymce.get('content').setContent('');
+    submitBtn.textContent = 'Create article';
+    formTitle.textContent = 'New article';
+    cancelBtn.style.display = 'none';
+}
+
+cancelBtn.addEventListener('click', resetForm);
+
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const selectedTags = Array.from(document.getElementById('tags').selectedOptions)
+        .map(option => `/api/tags/${option.value}`);
+
+    const payload = {
+        title: document.getElementById('title').value,
+        slug: document.getElementById('slug').value,
+        category: `/api/categories/${document.getElementById('category').value}`,
+        tags: selectedTags,
+        excerpt: tinymce.get('excerpt').getContent() || null,
+        content: tinymce.get('content').getContent(),
+        coverImage: document.getElementById('coverImage').value || null,
+        viewCount: parseInt(document.getElementById('viewCount').value || '0', 10),
+        publishedAt: document.getElementById('publishedAt').value
+            ? new Date(document.getElementById('publishedAt').value).toISOString()
+            : null,
+    };
+
+    const articleId = idField.value;
+
+    try {
+        if (articleId) {
+            await api(`/api/articles/${articleId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+                body: JSON.stringify(payload),
+            });
+            setStatus(`Article #${articleId} updated.`, false);
+        } else {
+            await api('/api/articles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/ld+json' },
+                body: JSON.stringify(payload),
+            });
+            setStatus('Article created.', false);
+        }
+        setTimeout(() => window.location.reload(), 400);
+    } catch (error) {
+        setStatus(error.message, true);
+    }
+});
+
+document.getElementById('article-rows').addEventListener('click', async (event) => {
+    const target = event.target;
+    const id = target.dataset.id;
+    if (!id) return;
+
+    if (target.classList.contains('delete-btn')) {
+        if (!confirm(`Delete article #${id}?`)) return;
+        try {
+            await api(`/api/articles/${id}`, { method: 'DELETE' });
+            setStatus(`Article #${id} deleted.`, false);
+            setTimeout(() => window.location.reload(), 400);
+        } catch (error) {
+            setStatus(error.message, true);
+        }
+        return;
+    }
+
+    if (target.classList.contains('edit-btn')) {
+        try {
+            const article = await api(`/api/articles/${id}`);
+            idField.value = id;
+            document.getElementById('title').value = article.title;
+            document.getElementById('slug').value = article.slug;
+            document.getElementById('coverImage').value = article.coverImage || '';
+            document.getElementById('viewCount').value = article.viewCount;
+            document.getElementById('publishedAt').value = article.publishedAt
+                ? article.publishedAt.slice(0, 16)
+                : '';
+            tinymce.get('excerpt').setContent(article.excerpt || '');
+            tinymce.get('content').setContent(article.content || '');
+
+            const categoryId = article.category ? article.category.split('/').pop() : '';
+            document.getElementById('category').value = categoryId;
+
+            const tagIds = (article.tags || []).map(iri => iri.split('/').pop());
+            Array.from(document.getElementById('tags').options).forEach(option => {
+                option.selected = tagIds.includes(option.value);
+            });
+
+            submitBtn.textContent = 'Save changes';
+            formTitle.textContent = `Editing article #${id}`;
+            cancelBtn.style.display = 'inline-block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            setStatus(error.message, true);
+        }
+    }
+});
+
+document.getElementById('add-category').addEventListener('click', async () => {
+    const name = document.getElementById('new-category-name').value;
+    const slug = document.getElementById('new-category-slug').value;
+    if (!name || !slug) return;
+    try {
+        await api('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/ld+json' },
+            body: JSON.stringify({ name, slug }),
+        });
+        setStatus(`Category "${name}" created.`, false);
+        setTimeout(() => window.location.reload(), 400);
+    } catch (error) {
+        setStatus(error.message, true);
+    }
+});
+
+document.getElementById('add-tag').addEventListener('click', async () => {
+    const name = document.getElementById('new-tag-name').value;
+    const slug = document.getElementById('new-tag-slug').value;
+    if (!name || !slug) return;
+    try {
+        await api('/api/tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/ld+json' },
+            body: JSON.stringify({ name, slug }),
+        });
+        setStatus(`Tag "${name}" created.`, false);
+        setTimeout(() => window.location.reload(), 400);
+    } catch (error) {
+        setStatus(error.message, true);
+    }
+});
+});
+</script>
+{% endblock %}
