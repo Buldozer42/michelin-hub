@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/*
+  Brand fonts:
+  - Titles : Michelin Unit Titling Bold (proprietary) → fallback Arial Black / Noto Sans
+  - Body   : Noto Sans (Google Fonts, loaded via next/font)
+*/
+
+@theme inline {
+  --font-sans: var(--font-noto-sans);
+  --font-title: "Michelin Unit Titling", "Arial Black", var(--font-noto-sans), sans-serif;
+
+  /* Michelin brand palette */
+  --color-michelin-blue: #27509b;
+  --color-michelin-yellow: #fce500;
+  --color-michelin-navy: #020e39;
+}
+
+:root {
+  --background: #f4f4f6;
+  --foreground: #020e39;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), "Noto Sans", Arial, sans-serif;
+}
+
+/* Title utility — applies brand title font */
+.font-title {
+  font-family: var(--font-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
