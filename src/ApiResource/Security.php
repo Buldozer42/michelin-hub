@@ -19,7 +19,11 @@ use ApiPlatform\OpenApi\Model\RequestBody;
             requestBody: new RequestBody(
                 content: new \ArrayObject([
                     'application/json' => [
-                        'schema' => [
+                        'example' => [
+                            'login' => 'bsapp@mail.com',
+                            'password' => 'PassW0rd123456789!',
+                        ],
+                      'schema' => [
                             'type' => 'object',
                             'properties' => [
                                 'login' => ['type' => 'string'],
@@ -44,6 +48,13 @@ use ApiPlatform\OpenApi\Model\RequestBody;
             requestBody: new RequestBody(
                 content: new \ArrayObject([
                     'application/json' => [
+                        'example' => [
+                            'lastName' => 'SAPP',
+                            'firstName' => 'Bob',
+                            'email' => 'bsapp@mail.com',
+                            'username' => 'bsapp',
+                            'password' => 'PassW0rd123456789!',
+                        ],
                         'schema' => [
                             'type' => 'object',
                             'properties' => [

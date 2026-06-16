@@ -64,6 +64,7 @@ class RegisterController extends AbstractController
             ->setFirstName($firstName)
             ->setLastName($lastName)
             ->hashUserPassword($hasher)
+            ->setRoles(['ROLE_USER']);
         ;
 
         $manager->persist($user);
