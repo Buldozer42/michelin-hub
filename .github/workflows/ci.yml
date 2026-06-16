@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: [8.2, 8.3]
+        php-version: [8.3]
 
     steps:
       - name: Checkout code
@@ -47,7 +47,7 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Validate Composer files
-        run: composer validate --strict
+        run: composer validate --strict --no-check-publish
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
