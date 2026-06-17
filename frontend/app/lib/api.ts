@@ -3,6 +3,7 @@ export interface ApiCategory {
   name: string;
   slug: string;
   description: string | null;
+  color: string | null;
 }
 
 export interface ApiTag {
@@ -119,7 +120,7 @@ export async function deleteArticle(id: number): Promise<void> {
   return apiDelete(`/api/articles/${id}`);
 }
 
-export type CategoryPayload = { name: string; slug: string; description?: string };
+export type CategoryPayload = { name: string; slug: string; description?: string; color?: string | null };
 
 export async function createCategory(data: CategoryPayload): Promise<ApiCategory> {
   return apiPost("/api/categories", data);

@@ -443,11 +443,28 @@ function ArticlesTab() {
 
 // ── Categories tab ────────────────────────────────────────────────────────────
 
+const COLOR_PALETTE = [
+  { hex: "#047857", label: "Vert forêt" },
+  { hex: "#15803d", label: "Vert vif" },
+  { hex: "#0d9488", label: "Teal" },
+  { hex: "#ea580c", label: "Orange" },
+  { hex: "#d97706", label: "Ambre" },
+  { hex: "#1d4ed8", label: "Bleu roi" },
+  { hex: "#27509b", label: "Bleu Michelin" },
+  { hex: "#7c3aed", label: "Violet" },
+  { hex: "#b91c1c", label: "Rouge" },
+  { hex: "#475569", label: "Ardoise" },
+  { hex: "#334155", label: "Ardoise foncée" },
+  { hex: "#000c34", label: "Navy Michelin" },
+  { hex: "#fce500", label: "Jaune Michelin" },
+];
+
 const EMPTY_CATEGORY = {
   id: null as number | null,
   name: "",
   slug: "",
   description: "",
+  color: "",
 };
 
 function CategoriesTab() {
@@ -483,7 +500,7 @@ function CategoriesTab() {
   }
 
   function handleEdit(cat: ApiCategory) {
-    setForm({ id: cat.id, name: cat.name, slug: cat.slug, description: cat.description ?? "" });
+    setForm({ id: cat.id, name: cat.name, slug: cat.slug, description: cat.description ?? "", color: cat.color ?? "" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -497,6 +514,7 @@ function CategoriesTab() {
     const payload = {
       name: form.name,
       slug: form.slug,
+      color: form.color || null,
       ...(form.description ? { description: form.description } : {}),
     };
     try {
@@ -564,6 +582,26 @@ function CategoriesTab() {
               placeholder="Description de la catégorie…"
             />
           </Field>
+          <Field label="Couleur">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-lg border border-gray-200 shrink-0 transition-colors"
+                style={{ backgroundColor: form.color || "#e5e7eb" }}
+              />
+              <select
+                value={form.color}
+                onChange={(e) => patch("color", e.target.value)}
+                className={CX.input}
+              >
+                <option value="">— Aucune couleur —</option>
+                {COLOR_PALETTE.map(({ hex, label }) => (
+                  <option key={hex} value={hex}>
+                    {label} ({hex})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Field>
           <div className="flex gap-2 pt-2">
             <button type="submit" className={CX.btnPrimary}>
               {form.id ? "Enregistrer" : "Créer la catégorie"}
@@ -607,7 +645,15 @@ function CategoriesTab() {
                       }`}
                     >
                       <td className={CX.td}>
-                        <div className="font-semibold text-[#000c34]">{cat.name}</div>
+                        <div className="flex items-center gap-2">
+                          {cat.color && (
+                            <div
+                              className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/10"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                          )}
+                          <div className="font-semibold text-[#000c34]">{cat.name}</div>
+                        </div>
                         <div className="text-gray-400 text-xs mt-0.5 font-mono">/{cat.slug}</div>
                       </td>
                       <td className={`${CX.td} text-gray-500 max-w-[280px]`}>

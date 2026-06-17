@@ -16,18 +16,19 @@ class AppFixtures extends Fixture
 
         $categories = [];
         foreach ([
-            ['Destinations',     'destinations',    'Les meilleurs itinéraires et spots pour sortir rouler, de la montagne au littoral.'],
-            ['Technique',        'technique',       'Conseils techniques, fitting, aérodynamisme et prise en main de votre matériel.'],
-            ['VTT',              'vtt',             'Tout-terrain, enduro, cross-country : l\'univers du mountain bike sous toutes ses formes.'],
-            ['Mobilité urbaine', 'mobilite-urbaine','Le vélo au quotidien en ville : commuting, sécurité et équipement pratique.'],
-            ['Entraînement',     'entrainement',    'Plans d\'entraînement, nutrition et méthodes pour progresser sur le vélo.'],
-            ['Compétition',      'competition',     'Actualité du cyclisme pro, grandes classiques et courses à suivre.'],
-            ['Entretien',        'entretien',       'Mécanique vélo : guides pas à pas pour entretenir et réparer soi-même.'],
-        ] as [$name, $slug, $desc]) {
+            ['Destinations',     'destinations',    'Les meilleurs itinéraires et spots pour sortir rouler, de la montagne au littoral.', '#047857'],
+            ['Technique',        'technique',       'Conseils techniques, fitting, aérodynamisme et prise en main de votre matériel.',     '#ea580c'],
+            ['VTT',              'vtt',             'Tout-terrain, enduro, cross-country : l\'univers du mountain bike sous toutes ses formes.', '#15803d'],
+            ['Mobilité urbaine', 'mobilite-urbaine','Le vélo au quotidien en ville : commuting, sécurité et équipement pratique.',          '#475569'],
+            ['Entraînement',     'entrainement',    'Plans d\'entraînement, nutrition et méthodes pour progresser sur le vélo.',            '#27509b'],
+            ['Compétition',      'competition',     'Actualité du cyclisme pro, grandes classiques et courses à suivre.',                   '#b91c1c'],
+            ['Entretien',        'entretien',       'Mécanique vélo : guides pas à pas pour entretenir et réparer soi-même.',               '#000c34'],
+        ] as [$name, $slug, $desc, $color]) {
             $cat = (new Category())
                 ->setName($name)
                 ->setSlug($slug)
-                ->setDescription($desc);
+                ->setDescription($desc)
+                ->setColor($color);
             $manager->persist($cat);
             $categories[$slug] = $cat;
         }

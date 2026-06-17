@@ -31,6 +31,10 @@ class Category
     #[Groups(['article:read'])]
     private ?string $description = null;
 
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Groups(['article:read'])]
+    private ?string $color = null;
+
     /**
      * @var Collection<int, Article>
      */
@@ -79,6 +83,18 @@ class Category
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getColor(): ?string
+    {
+        return $this->color;
+    }
+
+    public function setColor(?string $color): static
+    {
+        $this->color = $color;
 
         return $this;
     }

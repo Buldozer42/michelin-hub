@@ -6,10 +6,9 @@ import { useBikes, Bike, BIKE_TYPES } from '../../context/BikeContext';
 import BikeForm from './BikeForm';
 import SiteFooter from '../Footer';
 
-/* ─── Static mock data for tire / eco / stats ───────────────── */
+/* ─── Static reference data (no backend entity yet) ─────────────── */
 
 const TIRE_RATING = { rollingEfficiency: 94, punctureResistance: 72, grip: 90, durability: 78 };
-const ECO_IMPACT  = { co2SavedKg: 127.4, caloriesBurned: 48200, equivalentCarKm: 892, moneySaved: 342 };
 
 const TIRE_FRONT = {
   brand: 'Michelin', model: 'Power Cup Competition', position: 'AVANT',
@@ -194,11 +193,10 @@ function DeleteConfirm({ bike, onConfirm, onCancel }: { bike: Bike; onConfirm: (
 /* ─── Main page ──────────────────────────────────────────────── */
 export default function MonVeloPage() {
   const { bikes, activeBike, activeBikeId, loaded, setActiveBikeId, addBike, updateBike, deleteBike } = useBikes();
-  const [showAddForm, setShowAddForm]       = useState(false);
-  const [editingBike, setEditingBike]       = useState<Bike | null>(null);
-  const [deletingBike, setDeletingBike]     = useState<Bike | null>(null);
+  const [showAddForm, setShowAddForm]   = useState(false);
+  const [editingBike, setEditingBike]   = useState<Bike | null>(null);
+  const [deletingBike, setDeletingBike] = useState<Bike | null>(null);
 
-  // Still loading from localStorage
   if (!loaded) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -207,14 +205,11 @@ export default function MonVeloPage() {
     );
   }
 
-  // No bikes yet
   if (bikes.length === 0) {
     return (
-      <div className="bg-white min-h-screen">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <EmptyBikes />
         <SiteFooter />
-      </div>
       </div>
     );
   }
@@ -223,9 +218,16 @@ export default function MonVeloPage() {
   const typeLabel = BIKE_TYPES.find(t => t.value === bike.type)?.label ?? bike.type;
   const isEbike = bike.type === 'E-BIKE';
 
+  /* ── Eco impact calculated from the bike's real total distance ── */
+  const ecoImpact = {
+    co2SavedKg:      Math.round(bike.totalDistance * 0.21 * 10) / 10,
+    caloriesBurned:  Math.round(bike.totalDistance * 35),
+    equivalentCarKm: Math.round(bike.totalDistance),
+    moneySaved:      Math.round(bike.totalDistance * 0.15),
+  };
+
   return (
-    <div className="bg-white min-h-screen">
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* ── Bike selector row ── */}
       <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1">
@@ -237,7 +239,6 @@ export default function MonVeloPage() {
             onClick={() => setActiveBikeId(b.id)}
           />
         ))}
-        {/* Add bike button */}
         <button
           onClick={() => setShowAddForm(true)}
           className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-[#27509b] hover:text-[#27509b] transition-all"
@@ -272,7 +273,6 @@ export default function MonVeloPage() {
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {isEbike && (
             <span className="inline-flex items-center gap-1.5 bg-[#fce500] text-[#000c34] text-xs font-black px-3 py-2 rounded-full">
@@ -302,7 +302,7 @@ export default function MonVeloPage() {
         </div>
       </div>
 
-      {/* ── Distance chart + EcologicalImpact ── */}
+      {/* ── Distance chart + Eco impact ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 bg-[#000c34] rounded-2xl p-6">
           <div className="flex justify-between items-start">
@@ -346,18 +346,18 @@ export default function MonVeloPage() {
           </div>
           <div className="text-gray-400 text-[10px] font-black tracking-[0.15em]">CO2 ÉCONOMISÉ</div>
           <div className="font-title text-[#000c34] text-4xl mt-1">
-            {ECO_IMPACT.co2SavedKg} <span className="text-2xl text-[#000c34]/50">kg</span>
+            {ecoImpact.co2SavedKg} <span className="text-2xl text-[#000c34]/50">kg</span>
           </div>
           <p className="text-gray-400 text-xs mt-2">
-            ≈ <strong className="text-[#000c34]">{ECO_IMPACT.equivalentCarKm} km</strong> en voiture évités
+            ≈ <strong className="text-[#000c34]">{ecoImpact.equivalentCarKm} km</strong> en voiture évités
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="bg-green-50 rounded-xl p-2.5">
-              <div className="text-green-700 font-black text-sm">{(ECO_IMPACT.caloriesBurned / 1000).toFixed(1)}k</div>
+              <div className="text-green-700 font-black text-sm">{(ecoImpact.caloriesBurned / 1000).toFixed(1)}k</div>
               <div className="text-green-600 text-[10px]">kcal brûlées</div>
             </div>
             <div className="bg-[#fce500]/10 rounded-xl p-2.5">
-              <div className="text-[#000c34] font-black text-sm">{ECO_IMPACT.moneySaved} €</div>
+              <div className="text-[#000c34] font-black text-sm">{ecoImpact.moneySaved} €</div>
               <div className="text-[#000c34]/50 text-[10px]">économisés</div>
             </div>
           </div>
@@ -411,7 +411,7 @@ export default function MonVeloPage() {
           </h3>
           <p className="text-white/60 text-sm mt-3 leading-relaxed">
             Chez Michelin, nous nous engageons à ce que nos pneus soient{' '}
-            <strong className="text-[#fce500]">100% biosourcés ou recyclés </strong> d&apos; ici 2050.
+            <strong className="text-[#fce500]">100% biosourcés ou recyclés </strong> d&apos;ici 2050.
           </p>
           <div className="mt-4">
             <div className="flex justify-between text-xs text-white/40 mb-1.5">
@@ -431,7 +431,6 @@ export default function MonVeloPage() {
 
       <SiteFooter />
 
-      {/* ── Add bike modal ── */}
       {showAddForm && (
         <BikeForm
           onSave={(data) => { addBike(data); setShowAddForm(false); }}
@@ -440,7 +439,6 @@ export default function MonVeloPage() {
         />
       )}
 
-      {/* ── Edit bike modal ── */}
       {editingBike && (
         <BikeForm
           bike={editingBike}
@@ -450,7 +448,6 @@ export default function MonVeloPage() {
         />
       )}
 
-      {/* ── Delete confirmation ── */}
       {deletingBike && (
         <DeleteConfirm
           bike={deletingBike}
@@ -458,7 +455,6 @@ export default function MonVeloPage() {
           onCancel={() => setDeletingBike(null)}
         />
       )}
-    </div>
     </div>
   );
 }

@@ -1,27 +1,57 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { getArticles, getCategories, ApiArticle, ApiCategory } from "../../lib/api";
 import SiteFooter from "../Footer";
 
-/* ── Category tag system ─────────────────────────────────────────
-   Visible, bold category chips as per Michelin Design System.
-   Helmet reminder on human-centred photo areas (brand compliance).
-───────────────────────────────────────────────────────────────── */
+/* ── Color helpers ────────────────────────────────────────────────────── */
 
-interface Category {
-  label: string;
-  color: string;   /* bg + text */
+function isLight(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
-const CATEGORIES: Category[] = [
-  { label: "Conseils Pneus",  color: "bg-[#27509b] text-white" },
-  { label: "Itinéraires",     color: "bg-emerald-700 text-white" },
-  { label: "Technique",       color: "bg-orange-600 text-white" },
-  { label: "VTT & Trail",     color: "bg-green-700 text-white" },
-  { label: "E-Bike Ready",    color: "bg-[#fce500] text-[#000c34]" },
-  { label: "Mobilité Urbaine",color: "bg-slate-700 text-white" },
-];
+function hexToGradient(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const dark = `rgb(${Math.round(r * 0.4)},${Math.round(g * 0.4)},${Math.round(b * 0.4)})`;
+  return `linear-gradient(to bottom right, ${dark}, ${hex})`;
+}
+
+const FALLBACK_COLOR = "#27509b";
+
+/* ── Helpers ──────────────────────────────────────────────────────────── */
+
+function formatDate(iso: string | null): string | undefined {
+  if (!iso) return undefined;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function calcReadTime(content: string): string {
+  const wordCount = content.replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.round(wordCount / 200))} min`;
+}
+
+/* ── Sub-components ─────────────────────────────────────────────────── */
+
+function CategoryChip({ label, hex }: { label: string; hex: string }) {
+  const textColor = isLight(hex) ? "#000c34" : "#ffffff";
+  return (
+    <span
+      className="inline-block text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase"
+      style={{ backgroundColor: hex, color: textColor }}
+    >
+      {label}
+    </span>
+  );
+}
 
 interface ArticleCardProps {
   category: string;
-  categoryColor: string;
+  categoryHex: string;
   gradient: string;
   date?: string;
   readTime?: string;
@@ -30,26 +60,18 @@ interface ArticleCardProps {
   viewCount?: number;
   tags?: string[];
   featured?: boolean;
-}
-
-function CategoryChip({ label, color }: { label: string; color: string }) {
-  return (
-    <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${color}`}>
-      {label}
-    </span>
-  );
+  slug?: string;
 }
 
 function ArticleCard({
-  category, categoryColor, gradient, date, readTime,
-  title, excerpt, viewCount, tags, featured = false,
+  category, categoryHex, gradient, date, readTime,
+  title, excerpt, viewCount, tags, featured = false, slug,
 }: ArticleCardProps) {
+  const href = slug ? `/blog/${slug}` : "#";
   return (
     <article className={`bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group ${featured ? "md:flex-row" : ""}`}>
-      {/* Visual area — helmet-compliant cycling imagery */}
       <div className={`relative overflow-hidden ${featured ? "md:w-[45%] h-56 md:h-auto" : "h-52"}`}>
-        <div className={`absolute inset-0 ${gradient}`} />
-        {/* Cyclist silhouette with helmet — brand compliance */}
+        <div className="absolute inset-0" style={{ background: gradient }} />
         <div className="absolute inset-0 flex items-end justify-end p-4 opacity-20">
           <svg viewBox="0 0 120 120" className={`${featured ? "w-32 h-32" : "w-24 h-24"}`}>
             <ellipse cx="78" cy="14" rx="10" ry="6" fill="white" />
@@ -60,20 +82,17 @@ function ArticleCard({
             <circle cx="99" cy="95" r="14" strokeWidth="5" stroke="white" fill="none" />
           </svg>
         </div>
-        {/* Helmet badge — brand guideline */}
         <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm rounded-lg px-2.5 py-1 flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5 fill-[#fce500]" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2C8.5 2 5.8 4.6 5.5 8H5c-1.7 0-3 1.3-3 3v1c0 1.7 1.3 3 3 3h1v1c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-1h1c1.7 0 3-1.3 3-3v-1c0-1.7-1.3-3-3-3h-.5C18.2 4.6 15.5 2 12 2zm0 2c2.5 0 4.5 2 4.5 4.5v.5h-9v-.5C7.5 6 9.5 4 12 4z" />
           </svg>
           <span className="text-white text-[9px] font-bold tracking-wide">Casque requis</span>
         </div>
-        {/* Category chip on image */}
         <div className="absolute bottom-3 left-3">
-          <CategoryChip label={category} color={categoryColor} />
+          <CategoryChip label={category} hex={categoryHex} />
         </div>
       </div>
 
-      {/* Content */}
       <div className={`flex flex-col flex-1 ${featured ? "p-8" : "p-5"}`}>
         <div className="flex items-center gap-3 mb-3">
           {date && <span className="text-[#53565a] text-xs">{date}</span>}
@@ -114,7 +133,7 @@ function ArticleCard({
         )}
 
         <a
-          href="#"
+          href={href}
           className={`inline-flex items-center gap-2 text-[#27509b] font-bold transition-all group-hover:gap-3 ${featured ? "text-sm mt-6" : "text-xs mt-4"}`}
           aria-label={`Lire l'article : ${title}`}
         >
@@ -128,19 +147,67 @@ function ArticleCard({
   );
 }
 
+function articleToCardProps(article: ApiArticle, featured = false): ArticleCardProps {
+  const hex = article.category?.color ?? FALLBACK_COLOR;
+  return {
+    category: article.category?.name ?? "Article",
+    categoryHex: hex,
+    gradient: hexToGradient(hex),
+    date: formatDate(article.publishedAt),
+    readTime: calcReadTime(article.content),
+    viewCount: article.viewCount,
+    tags: article.tags.map(t => t.slug),
+    title: article.title,
+    excerpt: article.excerpt ?? "",
+    featured,
+    slug: article.slug,
+  };
+}
+
+/* ── Skeleton loaders ──────────────────────────────────────────────── */
+
+function SkeletonCard({ featured = false }: { featured?: boolean }) {
+  return (
+    <div className={`bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md animate-pulse flex flex-col ${featured ? "md:flex-row" : ""}`}>
+      <div className={`bg-gray-200 ${featured ? "md:w-[45%] h-56 md:h-auto" : "h-52"}`} />
+      <div className={`flex flex-col flex-1 gap-3 ${featured ? "p-8" : "p-5"}`}>
+        <div className="h-3 bg-gray-200 rounded w-1/3" />
+        <div className="h-6 bg-gray-200 rounded w-3/4" />
+        <div className="h-4 bg-gray-100 rounded w-full" />
+        <div className="h-4 bg-gray-100 rounded w-5/6" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Main page ─────────────────────────────────────────────────────── */
+
 export default function BlogPage() {
+  const [articles, setArticles]     = useState<ApiArticle[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [loading, setLoading]       = useState(true);
+
+  useEffect(() => {
+    Promise.all([getArticles(), getCategories()])
+      .then(([arts, cats]) => { setArticles(arts); setCategories(cats); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const featured  = articles[0];
+  const gridItems = articles.slice(1, 4);
+  const sideItem  = articles[4] ?? articles[3] ?? null;
+
   return (
     <div className="bg-white">
       {/* ── Hero — full-bleed immersive ── */}
       <section className="bg-[#000c34] relative overflow-hidden" aria-label="À la une">
-        {/* Speed lines */}
         <div className="absolute inset-0 overflow-hidden opacity-[0.07]">
           {[...Array(7)].map((_, i) => (
             <div key={i} className="absolute h-px bg-white"
               style={{ top: `${10 + i * 14}%`, left: '-8%', right: '-8%', transform: `rotate(-${2 + i * 0.4}deg)` }} />
           ))}
         </div>
-        {/* Cyclist silhouette */}
         <div className="absolute right-0 bottom-0 w-72 h-72 md:w-[500px] md:h-[500px] opacity-[0.08]">
           <svg viewBox="0 0 200 200" className="w-full h-full">
             <ellipse cx="130" cy="22" rx="16" ry="10" fill="white" />
@@ -187,12 +254,12 @@ export default function BlogPage() {
             <button className="flex-shrink-0 bg-[#000c34] text-white text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase">
               Tout
             </button>
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <button
-                key={cat.label}
+                key={cat.id}
                 className="flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b] transition-colors"
               >
-                {cat.label}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -203,18 +270,11 @@ export default function BlogPage() {
 
         {/* ── Featured article ── */}
         <section aria-label="Article à la une">
-          <ArticleCard
-            featured
-            category="Itinéraires"
-            categoryColor="bg-emerald-700 text-white"
-            gradient="bg-gradient-to-br from-green-900 via-green-700 to-teal-600"
-            date="14 Octobre 2024"
-            readTime="8 min"
-            viewCount={3200}
-            tags={["vercors", "route", "itinéraire"]}
-            title="L'échappée belle dans le Vercors"
-            excerpt="Entre falaises calcaires et routes suspendues, un itinéraire mythique pour cyclistes exigeants. Chaque virage révèle un panorama à couper le souffle — et un test grandeur nature pour vos pneus Power Cup."
-          />
+          {loading ? (
+            <SkeletonCard featured />
+          ) : featured ? (
+            <ArticleCard {...articleToCardProps(featured, true)} />
+          ) : null}
         </section>
 
         {/* ── Articles grid ── */}
@@ -229,49 +289,20 @@ export default function BlogPage() {
             </a>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ArticleCard
-              category="Technique"
-              categoryColor="bg-orange-600 text-white"
-              gradient="bg-gradient-to-br from-orange-600 via-amber-500 to-yellow-400"
-              date="8 Nov. 2024"
-              readTime="5 min"
-              viewCount={5800}
-              tags={["pression", "tubeless", "setup"]}
-              title="Optimiser sa pression de gonflage"
-              excerpt="Trouvez l'équilibre parfait entre confort et performance pure. Le guide complet Michelin pour rouler plus vite et plus loin."
-            />
-            <ArticleCard
-              category="VTT & Trail"
-              categoryColor="bg-green-700 text-white"
-              gradient="bg-gradient-to-br from-green-950 via-green-800 to-emerald-600"
-              date="2 Nov. 2024"
-              readTime="6 min"
-              viewCount={1900}
-              tags={["enduro", "alpes", "test"]}
-              title="Wild Enduro : Le test ultime"
-              excerpt="Nous avons poussé les nouveaux pneus dans les sentiers les plus exigeants des Alpes. Résultat : une adhérence bluffante."
-            />
-            <ArticleCard
-              category="E-Bike Ready"
-              categoryColor="bg-[#fce500] text-[#000c34]"
-              gradient="bg-gradient-to-br from-[#000c34] via-[#27509b] to-blue-600"
-              date="29 Oct. 2024"
-              readTime="4 min"
-              viewCount={4200}
-              tags={["e-bike", "assistance", "pneus"]}
-              title="E-Bike : choisir le bon pneu"
-              excerpt="Les spécificités d'un pneu e-bike vont au-delà du poids. Charge, vitesse, fréquence d'usage — notre guide pour progresser sans compromis."
-            />
+            {loading
+              ? [0, 1, 2].map(i => <SkeletonCard key={i} />)
+              : gridItems.map(a => <ArticleCard key={a.id} {...articleToCardProps(a)} />)
+            }
           </div>
         </section>
 
-        {/* ── Guide Pratique + Mobilité ── */}
+        {/* ── Guide Pratique + article slot ── */}
         <section aria-label="Guide pratique et mobilité">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Guide Pratique — yellow brand section */}
+            {/* Guide Pratique — static yellow brand section */}
             <div className="bg-[#fce500] rounded-2xl p-8 flex flex-col justify-between">
               <div>
-                <CategoryChip label="Guide Pratique" color="bg-[#000c34] text-[#fce500]" />
+                <CategoryChip label="Guide Pratique" hex="#000c34" />
                 <h3 className="font-title text-[#000c34] text-3xl mt-4 mb-6 leading-tight">
                   Comment monter son pneu
                 </h3>
@@ -300,24 +331,17 @@ export default function BlogPage() {
               </div>
             </div>
 
-            <ArticleCard
-              category="Mobilité Urbaine"
-              categoryColor="bg-slate-700 text-white"
-              gradient="bg-gradient-to-br from-slate-700 via-blue-900 to-slate-800"
-              date="22 Oct. 2024"
-              readTime="3 min"
-              viewCount={7400}
-              tags={["vélotaf", "pluie", "sécurité"]}
-              title="Le vélotaf sous la pluie"
-              excerpt="Sécurité, équipement et choix de pneus pour rester au sec, en contrôle et à l'heure lors de vos trajets urbains quotidiens."
-            />
+            {loading ? (
+              <SkeletonCard />
+            ) : sideItem ? (
+              <ArticleCard {...articleToCardProps(sideItem)} />
+            ) : null}
           </div>
         </section>
 
         {/* ── Conversion — Trouver un revendeur ── */}
         <section aria-label="Nos pneus vélo" className="bg-[#000c34] rounded-2xl overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* Left: copy */}
             <div className="p-8 md:p-12 flex flex-col justify-center">
               <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1 rounded-full tracking-[0.2em] uppercase w-fit mb-5">
                 Équipez-vous
@@ -341,9 +365,7 @@ export default function BlogPage() {
                 </a>
               </div>
             </div>
-            {/* Right: product showcase — In Motion tire (NO Bibendum next to In Motion) */}
             <div className="bg-[#000c34] p-8 flex items-center justify-center gap-6">
-              {/* Tire 1 */}
               <div className="flex flex-col items-center gap-2">
                 <div className="w-28 h-28 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
                   <svg viewBox="0 0 80 80" className="w-20 h-20">
@@ -364,7 +386,6 @@ export default function BlogPage() {
                   Buy Now
                 </a>
               </div>
-              {/* Tire 2 */}
               <div className="flex flex-col items-center gap-2">
                 <div className="w-28 h-28 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
                   <svg viewBox="0 0 80 80" className="w-20 h-20">
@@ -374,7 +395,7 @@ export default function BlogPage() {
                   </svg>
                 </div>
                 <span className="text-white text-xs font-black">Wild Enduro</span>
-                <span className="text-white/40 text-[10px]">VTT · 29"</span>
+                <span className="text-white/40 text-[10px]">VTT · 29&quot;</span>
                 <a href="#" className="bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
                   Buy Now
                 </a>
