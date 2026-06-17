@@ -59,3 +59,90 @@ export async function getArticleBySlug(slug: string): Promise<ApiArticle | null>
   );
   return data.member[0] ?? null;
 }
+
+export async function getCategories(): Promise<ApiCategory[]> {
+  const data = await apiFetch<HydraCollection<ApiCategory>>("/api/categories");
+  return data.member;
+}
+
+export async function getTags(): Promise<ApiTag[]> {
+  const data = await apiFetch<HydraCollection<ApiTag>>("/api/tags");
+  return data.member;
+}
+
+async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json"): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { Accept: "application/ld+json", "Content-Type": ct },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.json();
+}
+
+async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: { Accept: "application/ld+json", "Content-Type": "application/merge-patch+json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.json();
+}
+
+async function apiDelete(path: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE" });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+}
+
+export type ArticlePayload = {
+  title: string;
+  slug: string;
+  category: string;
+  tags: string[];
+  excerpt: string | null;
+  content: string;
+  coverImage: string | null;
+  viewCount: number;
+  publishedAt: string | null;
+};
+
+export async function createArticle(data: ArticlePayload): Promise<ApiArticle> {
+  return apiPost("/api/articles", data);
+}
+
+export async function updateArticle(id: number, data: Partial<ArticlePayload>): Promise<ApiArticle> {
+  return apiPatch(`/api/articles/${id}`, data);
+}
+
+export async function deleteArticle(id: number): Promise<void> {
+  return apiDelete(`/api/articles/${id}`);
+}
+
+export type CategoryPayload = { name: string; slug: string; description?: string };
+
+export async function createCategory(data: CategoryPayload): Promise<ApiCategory> {
+  return apiPost("/api/categories", data);
+}
+
+export async function updateCategory(id: number, data: Partial<CategoryPayload>): Promise<ApiCategory> {
+  return apiPatch(`/api/categories/${id}`, data);
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  return apiDelete(`/api/categories/${id}`);
+}
+
+export type TagPayload = { name: string; slug: string };
+
+export async function createTag(data: TagPayload): Promise<ApiTag> {
+  return apiPost("/api/tags", data);
+}
+
+export async function updateTag(id: number, data: Partial<TagPayload>): Promise<ApiTag> {
+  return apiPatch(`/api/tags/${id}`, data);
+}
+
+export async function deleteTag(id: number): Promise<void> {
+  return apiDelete(`/api/tags/${id}`);
+}
