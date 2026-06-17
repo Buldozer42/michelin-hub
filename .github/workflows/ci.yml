@@ -1,0 +1,115 @@
+name: Symfony CI
+
+on:
+  push:
+    branches: [ "master", "noe" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      MYSQL_DATABASE: michelin_hub
+      MYSQL_ROOT_PASSWORD: ci-mysql-password
+      DATABASE_URL: mysql://root:ci-mysql-password@127.0.0.1:3306/michelin_hub?serverVersion=8.0.36&charset=utf8mb4
+      JWT_PASSPHRASE: 1adbada5d35f9804c04fe6abec946630d391cb9715e6a8873859b091859ace73
+    services:
+      db:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: michelin_hub
+          MYSQL_ROOT_PASSWORD: ci-mysql-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-mysql-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: [8.3]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, intl, pdo, pdo_mysql, pdo_pgsql, zip, xml
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Validate Composer files
+        run: composer validate --strict --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader --no-scripts
+
+      - name: Wait for MySQL
+        run: |
+          php -r '
+          $dsn = "mysql:host=127.0.0.1;port=3306;dbname=michelin_hub;charset=utf8mb4";
+          $ok = false;
+          for ($i = 0; $i < 30; $i++) {
+              try {
+                  new PDO($dsn, "root", "ci-mysql-password");
+                  $ok = true;
+                  break;
+              } catch (Throwable $e) {
+                  usleep(2000000);
+              }
+          }
+          if (!$ok) {
+              fwrite(STDERR, "MySQL did not become ready in time.\n");
+              exit(1);
+          }
+          echo "MySQL is ready.\n";
+          '
+
+      - name: Generate JWT keys for CI
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -out config/jwt/private.pem -aes256 -passout pass:${JWT_PASSPHRASE} 4096
+          openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem -passin pass:${JWT_PASSPHRASE}
+
+      - name: Prepare test database
+        run: |
+          php bin/console doctrine:database:create --if-not-exists --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+
+      - name: Run PHP CS Fixer (if installed)
+        run: |
+          if [ -x vendor/bin/php-cs-fixer ]; then
+            vendor/bin/php-cs-fixer fix --dry-run --diff
+          else
+            echo "php-cs-fixer not installed, skipping."
+          fi
+
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit --configuration phpunit.dist.xml
