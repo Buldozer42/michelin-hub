@@ -1,19 +1,75 @@
-import SiteFooter from "../Footer";
+"use client";
 
-interface ArticleCardProps {
-  badge: string;         // Category name
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import SiteFooter from "../Footer";
+import { getArticles, type ApiArticle } from "../../lib/api";
+
+interface CategoryStyle {
   badgeColor: string;
   gradient: string;
-  date?: string;         // publishedAt
+}
+
+const CATEGORY_STYLES: Record<string, CategoryStyle> = {
+  "Destinations": {
+    badgeColor: "bg-[#27509b] text-white",
+    gradient: "bg-gradient-to-br from-green-900 via-green-700 to-teal-600",
+  },
+  "Technique": {
+    badgeColor: "bg-orange-500 text-white",
+    gradient: "bg-gradient-to-br from-orange-600 via-amber-500 to-yellow-400",
+  },
+  "VTT": {
+    badgeColor: "bg-green-600 text-white",
+    gradient: "bg-gradient-to-br from-green-950 via-green-800 to-emerald-600",
+  },
+  "Mobilité urbaine": {
+    badgeColor: "bg-[#27509b] text-white",
+    gradient: "bg-gradient-to-br from-slate-700 via-blue-900 to-slate-800",
+  },
+  "Entraînement": {
+    badgeColor: "bg-purple-600 text-white",
+    gradient: "bg-gradient-to-br from-purple-900 via-fuchsia-700 to-pink-600",
+  },
+  "Compétition": {
+    badgeColor: "bg-red-600 text-white",
+    gradient: "bg-gradient-to-br from-red-900 via-rose-700 to-orange-600",
+  },
+  "Entretien": {
+    badgeColor: "bg-gray-600 text-white",
+    gradient: "bg-gradient-to-br from-gray-700 via-slate-600 to-gray-500",
+  },
+};
+
+const DEFAULT_CATEGORY_STYLE: CategoryStyle = {
+  badgeColor: "bg-[#27509b] text-white",
+  gradient: "bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-600",
+};
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "");
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(
+    new Date(value)
+  );
+}
+
+interface ArticleCardProps {
+  badge: string;
+  badgeColor: string;
+  gradient: string;
+  date?: string;
   title: string;
   excerpt: string;
-  viewCount?: number;    // Article.viewCount
-  tags?: string[];       // Tag[] names
-  cta?: boolean;
+  viewCount?: number;
+  tags?: string[];
+  href?: string;
   helmet?: boolean;
 }
 
-function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCount, tags, cta = true, helmet = true }: ArticleCardProps) {
+function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCount, tags, href, helmet = true }: ArticleCardProps) {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-shadow">
       {/* Image area */}
@@ -63,20 +119,51 @@ function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCo
             ))}
           </div>
         )}
-        {cta && (
-          <a href="#" className="inline-flex items-center gap-1 text-[#27509b] font-semibold text-sm mt-3 group-hover:gap-2 transition-all">
+        {href && (
+          <Link href={href} className="inline-flex items-center gap-1 text-[#27509b] font-semibold text-sm mt-3 group-hover:gap-2 transition-all">
             Lire l&apos;article
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </Link>
         )}
       </div>
     </div>
   );
 }
 
+function articleCardProps(article: ApiArticle): ArticleCardProps {
+  const style = CATEGORY_STYLES[article.category.name] ?? DEFAULT_CATEGORY_STYLE;
+  return {
+    badge: article.category.name.toUpperCase(),
+    badgeColor: style.badgeColor,
+    gradient: style.gradient,
+    date: formatDate(article.publishedAt ?? article.createdAt),
+    title: article.title,
+    excerpt: stripHtml(article.excerpt ?? ""),
+    viewCount: article.viewCount,
+    tags: article.tags.map(tag => tag.name),
+    href: `/blog/${article.slug}`,
+  };
+}
+
 export default function BlogPage() {
+  const [articles, setArticles] = useState<ApiArticle[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    getArticles()
+      .then(data => {
+        setArticles(data);
+        setStatus("ready");
+      })
+      .catch(() => setStatus("error"));
+  }, []);
+
+  const topThree = articles.slice(0, 3);
+  const fourth = articles[3];
+  const rest = articles.slice(4);
+
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -116,106 +203,86 @@ export default function BlogPage() {
             Découvrez les récits de ceux qui repoussent les limites, équipés par la performance Michelin.
             Liberté, vitesse, endurance — votre prochaine aventure commence ici.
           </p>
-          <a href="#" className="mt-6 inline-flex items-center gap-2 bg-[#fce500] text-[#020e39] font-black text-sm px-6 py-3 rounded-xl w-fit hover:bg-yellow-300 transition-colors">
-            Explorer le blog
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
         </div>
       </div>
 
-      {/* ── Articles grid 1→2→3 cols ── */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <ArticleCard
-          badge="DESTINATIONS"
-          badgeColor="bg-[#27509b] text-white"
-          gradient="bg-gradient-to-br from-green-900 via-green-700 to-teal-600"
-          date="14 Octobre 2024"
-          viewCount={3200}
-          tags={["vercors", "route", "itinéraire"]}
-          title="L'échappée belle dans le Vercors"
-          excerpt="Entre falaises calcaires et routes suspendues, un itinéraire mythique pour tester votre endurance et vos pneus Power Cup."
-        />
-        <ArticleCard
-          badge="TECHNIQUE"
-          badgeColor="bg-orange-500 text-white"
-          gradient="bg-gradient-to-br from-orange-600 via-amber-500 to-yellow-400"
-          date="8 Novembre 2024"
-          viewCount={5800}
-          tags={["pression", "tubeless", "setup"]}
-          title="Optimiser sa pression de gonflage"
-          excerpt="Comment trouver l'équilibre parfait entre confort et performance pure. Le guide complet Michelin."
-          cta={false}
-        />
-        <ArticleCard
-          badge="VTT"
-          badgeColor="bg-green-600 text-white"
-          gradient="bg-gradient-to-br from-green-950 via-green-800 to-emerald-600"
-          date="2 Novembre 2024"
-          viewCount={1900}
-          tags={["enduro", "alpes", "test"]}
-          title="Wild Enduro : Le test ultime"
-          excerpt="Nous avons poussé les nouveaux pneus dans les sentiers les plus exigeants des Alpes. Résultat : une adhérence bluffante."
-          cta={false}
-        />
-      </div>
+      {status === "loading" && (
+        <p className="mt-8 text-gray-400 text-sm">Chargement des articles…</p>
+      )}
+      {status === "error" && (
+        <p className="mt-8 text-red-500 text-sm">Impossible de charger les articles pour le moment.</p>
+      )}
 
-      {/* ── Guide Pratique + Article ── */}
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-
-        {/* Guide Pratique — yellow section */}
-        <div className="bg-[#fce500] rounded-2xl p-6 md:p-8">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-[#020e39] rounded-xl flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-[#fce500]">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-              </svg>
+      {status === "ready" && (
+        <>
+          {/* ── Articles grid 1→2→3 cols ── */}
+          {topThree.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {topThree.map(article => (
+                <ArticleCard key={article.id} {...articleCardProps(article)} />
+              ))}
             </div>
-            <span className="text-[#020e39] font-black text-xs tracking-widest uppercase">Guide Pratique</span>
-          </div>
-          <h3 className="font-title text-[#020e39] text-2xl md:text-3xl mb-6">Comment monter son pneu</h3>
-          <ol className="space-y-3.5">
-            {[
-              "Vérifiez le sens de rotation indiqué sur le flanc.",
-              "Insérez une tringle dans la jante sans outil.",
-              "Gonflez légèrement, puis ajustez à la pression recommandée.",
-            ].map((step, i) => (
-              <li key={i} className="flex gap-3 items-start">
-                <span className="w-6 h-6 bg-[#020e39] text-[#fce500] rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <span className="text-[#020e39] text-sm leading-relaxed">{step}</span>
-              </li>
-            ))}
-          </ol>
-          {/* Conseil Michelin box */}
-          <div className="mt-6 bg-white/50 rounded-xl p-4">
-            <p className="text-[#020e39] text-[11px] font-black mb-1.5 flex items-center gap-1.5">
-              <span className="text-base">💡</span>
-              CONSEIL MICHELIN
-            </p>
-            <p className="text-[#020e39]/80 text-xs leading-relaxed italic">
-              &ldquo;Un pneu bien monté réduit les frottements de 15%. Utilisez de l&apos;eau savonneuse
-              sur les tringles pour faciliter la mise en place.&rdquo;
-            </p>
-            <p className="text-[#020e39]/50 text-[10px] mt-2">* Ces conseils sont indicatifs. Consultez un professionnel si besoin.</p>
-          </div>
-        </div>
+          )}
 
-        {/* Mobilité Urbaine article */}
-        <ArticleCard
-          badge="MOBILITÉ URBAINE"
-          badgeColor="bg-[#27509b] text-white"
-          gradient="bg-gradient-to-br from-slate-700 via-blue-900 to-slate-800"
-          date="22 Octobre 2024"
-          viewCount={7400}
-          tags={["vélotaf", "pluie", "sécurité"]}
-          title="Le vélotaf sous la pluie"
-          excerpt="Sécurité, équipement et choix de pneus pour rester au sec, en contrôle et à l'heure lors de vos trajets urbains quotidiens."
-          cta={false}
-        />
-      </div>
+          {/* ── Guide Pratique + Article ── */}
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* Guide Pratique — yellow section */}
+            <div className="bg-[#fce500] rounded-2xl p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-[#020e39] rounded-xl flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-[#fce500]">
+                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                  </svg>
+                </div>
+                <span className="text-[#020e39] font-black text-xs tracking-widest uppercase">Guide Pratique</span>
+              </div>
+              <h3 className="font-title text-[#020e39] text-2xl md:text-3xl mb-6">Comment monter son pneu</h3>
+              <ol className="space-y-3.5">
+                {[
+                  "Vérifiez le sens de rotation indiqué sur le flanc.",
+                  "Insérez une tringle dans la jante sans outil.",
+                  "Gonflez légèrement, puis ajustez à la pression recommandée.",
+                ].map((step, i) => (
+                  <li key={i} className="flex gap-3 items-start">
+                    <span className="w-6 h-6 bg-[#020e39] text-[#fce500] rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-[#020e39] text-sm leading-relaxed">{step}</span>
+                  </li>
+                ))}
+              </ol>
+              {/* Conseil Michelin box */}
+              <div className="mt-6 bg-white/50 rounded-xl p-4">
+                <p className="text-[#020e39] text-[11px] font-black mb-1.5 flex items-center gap-1.5">
+                  <span className="text-base">💡</span>
+                  CONSEIL MICHELIN
+                </p>
+                <p className="text-[#020e39]/80 text-xs leading-relaxed italic">
+                  &ldquo;Un pneu bien monté réduit les frottements de 15%. Utilisez de l&apos;eau savonneuse
+                  sur les tringles pour faciliter la mise en place.&rdquo;
+                </p>
+                <p className="text-[#020e39]/50 text-[10px] mt-2">* Ces conseils sont indicatifs. Consultez un professionnel si besoin.</p>
+              </div>
+            </div>
+
+            {/* Featured article */}
+            {fourth && <ArticleCard {...articleCardProps(fourth)} />}
+          </div>
+
+          {/* ── Remaining articles ── */}
+          {rest.length > 0 && (
+            <div className="mt-8">
+              <h2 className="font-title text-[#020e39] text-2xl mb-4">Tous les articles</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {rest.map(article => (
+                  <ArticleCard key={article.id} {...articleCardProps(article)} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* ── Newsletter — dark conversion section ── */}
       <div className="mt-8 bg-[#020e39] rounded-2xl p-6 md:p-10">

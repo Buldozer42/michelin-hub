@@ -2,53 +2,76 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\ArticleRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    normalizationContext: ['groups' => ['article:read']],
+    denormalizationContext: ['groups' => ['article:write']],
+)]
+#[ApiFilter(SearchFilter::class, properties: ['slug' => 'exact'])]
+#[ApiFilter(OrderFilter::class, properties: ['publishedAt', 'viewCount'])]
 class Article
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['article:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['article:read', 'article:write'])]
     private string $title;
 
     #[ORM\Column(length: 255, unique: true)]
+    #[Groups(['article:read', 'article:write'])]
     private string $slug;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['article:read', 'article:write'])]
     private ?string $excerpt = null;
 
     #[ORM\Column(type: 'text')]
+    #[Groups(['article:read', 'article:write'])]
     private string $content;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['article:read', 'article:write'])]
     private ?string $coverImage = null;
 
     #[ORM\Column]
+    #[Groups(['article:read', 'article:write'])]
     private int $viewCount = 0;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['article:read', 'article:write'])]
     private ?\DateTimeImmutable $publishedAt = null;
 
     #[ORM\Column]
+    #[Groups(['article:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\ManyToOne(targetEntity: Category::class, inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
+    #[ApiProperty(readableLink: true)]
+    #[Groups(['article:read', 'article:write'])]
     private ?Category $category = null;
 
     /**
      * @var Collection<int, Tag>
      */
     #[ORM\ManyToMany(targetEntity: Tag::class, inversedBy: 'articles')]
+    #[ApiProperty(readableLink: true)]
+    #[Groups(['article:read', 'article:write'])]
     private Collection $tags;
 
     public function __construct()

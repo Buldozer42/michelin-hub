@@ -141,7 +141,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 tinymce.init({ selector: '#excerpt', height: 150, menubar: false, plugins: 'lists link', toolbar: 'undo redo | bold italic | bullist numlist | link' });
-tinymce.init({ selector: '#content', height: 350, menubar: false, plugins: 'lists link image code table', toolbar: 'undo redo | blocks | bold italic | bullist numlist | link image table | code' });
+tinymce.init({ selector: '#content', height: 350, menubar: false, plugins: 'lists link image media code table', toolbar: 'undo redo | blocks | bold italic | bullist numlist | link image media table | code' });
 
 const statusEl = document.getElementById('status');
 function setStatus(message, isError) {
