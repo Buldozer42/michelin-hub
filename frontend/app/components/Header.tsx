@@ -17,22 +17,26 @@ const NAV_ITEMS: { id: Tab; label: string }[] = [
   { id: "monvelo", label: "Mon Vélo" },
 ];
 
+/** Michelin commercial horizontal logo — yellow underline as per brand guidelines */
 function MichelinLogo() {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 bg-[#27509b] rounded-lg flex items-center justify-center shrink-0">
-        <svg viewBox="0 0 36 36" className="w-8 h-8">
-          <ellipse cx="18" cy="10" rx="7" ry="7" fill="white" />
-          <ellipse cx="18" cy="22" rx="10" ry="7" fill="white" />
-          <ellipse cx="18" cy="31" rx="12" ry="6" fill="white" />
-          <circle cx="15" cy="8.5" r="1.8" fill="#27509b" />
-          <circle cx="21" cy="8.5" r="1.8" fill="#27509b" />
-          <path d="M14.5 13.5 Q18 16 21.5 13.5" stroke="#27509b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    <div className="flex items-center gap-0 shrink-0 select-none">
+      {/* Bibendum mark */}
+      <div className="w-8 h-8 mr-2.5 shrink-0">
+        <svg viewBox="0 0 36 36" className="w-full h-full">
+          <ellipse cx="18" cy="9"  rx="7"  ry="7"  fill="#27509b" />
+          <ellipse cx="18" cy="20" rx="10" ry="7"  fill="#27509b" />
+          <ellipse cx="18" cy="31" rx="12" ry="6"  fill="#27509b" />
+          <circle cx="15" cy="7.5"  r="1.8" fill="white" />
+          <circle cx="21" cy="7.5"  r="1.8" fill="white" />
+          <path d="M14 13 Q18 16.5 22 13" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </svg>
       </div>
-      <div>
-        <div className="font-title text-[#27509b] text-[13px] tracking-[0.08em] leading-none">MICHELIN</div>
-        <div className="text-[#27509b]/60 text-[10px] font-semibold tracking-widest leading-none mt-0.5">VÉLO HUB</div>
+      {/* Wordmark + yellow rule */}
+      <div className="flex flex-col leading-none">
+        <span className="font-title text-[#000c34] text-[17px] tracking-[0.1em] leading-none">MICHELIN</span>
+        <div className="h-[3px] bg-[#fce500] rounded-full mt-[3px]" />
+        <span className="text-[#53565a] text-[9px] font-semibold tracking-[0.25em] mt-[3px] leading-none">VÉLO HUB</span>
       </div>
     </div>
   );
@@ -61,36 +65,36 @@ export default function Header({ activeTab, onTabChange }: Props) {
     : "";
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-[0_1px_12px_rgba(0,12,52,0.08)]">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-[0_1px_16px_rgba(0,12,52,0.06)]">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[68px]">
 
-          {/* Left: Logo */}
-          <button onClick={() => handleNav("blog")} className="shrink-0">
+          {/* Left: Logo — always top-left, nothing crowds it */}
+          <button onClick={() => handleNav("blog")} className="shrink-0" aria-label="Accueil Michelin Vélo Hub">
             <MichelinLogo />
           </button>
 
           {/* Center: Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
             {NAV_ITEMS.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => handleNav(id)}
-                className={`relative px-5 py-2.5 text-sm font-bold transition-colors rounded-lg ${
+                aria-current={activeTab === id ? "page" : undefined}
+                className={`relative px-5 py-2.5 text-sm font-bold transition-all rounded-lg ${
                   activeTab === id
                     ? "text-[#27509b]"
                     : "text-[#53565a] hover:text-[#27509b] hover:bg-[#27509b]/5"
                 }`}
               >
                 {label}
-                {/* Lock hint on Mon Vélo when not logged in */}
                 {id === "monvelo" && !user && (
-                  <svg className="inline-block ml-1 w-3 h-3 text-gray-300 -mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="inline-block ml-1 w-3 h-3 text-gray-300 -mt-0.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
                   </svg>
                 )}
                 {activeTab === id && (
-                  <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[#fce500] rounded-full" />
+                  <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[#fce500] rounded-full" aria-hidden="true" />
                 )}
               </button>
             ))}
@@ -100,10 +104,11 @@ export default function Header({ activeTab, onTabChange }: Props) {
           <div className="flex items-center gap-2">
 
             {user ? (
-              /* ── Logged in: user avatar + dropdown ── */
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(o => !o)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
                   className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-[#27509b] flex items-center justify-center text-white text-xs font-black shrink-0">
@@ -112,7 +117,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                   <span className="hidden sm:block text-sm font-semibold text-[#000c34] max-w-[120px] truncate">
                     {user.firstName}
                   </span>
-                  <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -120,7 +125,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20">
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-[0_8px_32px_rgba(0,12,52,0.12)] border border-gray-100 overflow-hidden z-20">
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                         <div className="font-semibold text-[#000c34] text-sm">
                           {user.firstName} {user.lastName}
@@ -138,7 +143,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                         onClick={() => { handleNav("monvelo"); setUserMenuOpen(false); }}
                         className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-[#000c34] hover:bg-gray-50 transition-colors border-b border-gray-100"
                       >
-                        <svg className="w-4 h-4 fill-[#27509b]" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 fill-[#27509b]" viewBox="0 0 24 24" aria-hidden="true">
                           <path d="M12 3C6.48 3 2 6.48 2 12s4.48 9 10 9 10-4.03 10-9-4.48-9-10-9zm0 2c3.87 0 7.19 2.45 8.51 5.92H3.49C4.81 7.45 8.13 5 12 5zm0 14c-4.41 0-8-3.59-8-8 0-.34.02-.67.05-1h15.9c.03.33.05.66.05 1 0 4.41-3.59 8-8 8z" />
                         </svg>
                         Mon Vélo
@@ -147,7 +152,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
                         Se déconnecter
@@ -157,7 +162,6 @@ export default function Header({ activeTab, onTabChange }: Props) {
                 )}
               </div>
             ) : (
-              /* ── Not logged in: login + signup buttons ── */
               <div className="hidden sm:flex items-center gap-2">
                 <Link
                   href="/login"
@@ -167,7 +171,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-2 text-sm font-black text-[#000c34] bg-[#fce500] hover:bg-yellow-300 rounded-xl transition-colors"
+                  className="px-5 py-2.5 text-sm font-black text-[#000c34] bg-[#fce500] hover:bg-yellow-300 rounded-xl transition-colors min-h-[40px] inline-flex items-center"
                 >
                   S&apos;inscrire
                 </Link>
@@ -178,7 +182,8 @@ export default function Header({ activeTab, onTabChange }: Props) {
             <button
               className="md:hidden p-2 text-[#27509b] hover:bg-[#27509b]/5 rounded-lg transition-colors"
               onClick={() => setMenuOpen(o => !o)}
-              aria-label="Menu"
+              aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-expanded={menuOpen}
             >
               {menuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,14 +201,14 @@ export default function Header({ activeTab, onTabChange }: Props) {
 
       {/* Mobile dropdown */}
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white">
-          <nav className="max-w-[1280px] mx-auto px-4 py-1">
+        <div className="md:hidden border-t border-gray-100 bg-white shadow-lg">
+          <nav className="max-w-[1280px] mx-auto px-4 py-1" aria-label="Navigation mobile">
             {NAV_ITEMS.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => handleNav(id)}
                 className={`flex items-center gap-3 w-full py-3.5 border-b border-gray-100 text-sm font-semibold transition-colors ${
-                  activeTab === id ? "text-[#27509b]" : "text-gray-500"
+                  activeTab === id ? "text-[#27509b]" : "text-[#53565a]"
                 }`}
               >
                 <span className={`w-1 h-5 rounded-full shrink-0 ${activeTab === id ? "bg-[#fce500]" : "bg-transparent"}`} />

@@ -196,35 +196,63 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
         )}
       </div>
 
-      <div className={`mx-4 rounded-xl h-36 ${activity.gradient}`} />
+      <div className={`mx-4 mb-2 rounded-xl h-28 ${activity.gradient} opacity-70`} />
 
-      <div className="px-4 pt-3 pb-4">
+      {/* Stats — 3D white bg for primary (distance), 2D blue/yellow icons for secondary */}
+      <div className="mx-4 mt-3 mb-4">
         <div className="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
-          {activity.stats.map((s) => (
-            <div key={s.label} className="text-center">
-              <div className="text-gray-400 text-[9px] font-black tracking-widest">{s.label}</div>
-              <div className="text-[#000c34] font-black text-base">{s.value}</div>
+          {activity.stats.map((s, i) => (
+            <div key={s.label} className={`rounded-xl p-2.5 text-center ${i === 0 ? "bg-[#000c34]" : "bg-gray-50"}`}>
+              {/* Primary stat: white 3D-style icon — Distance */}
+              {i === 0 && (
+                <div className="flex justify-center mb-1">
+                  <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z" />
+                  </svg>
+                </div>
+              )}
+              {/* Secondary stats: 2D colored icons */}
+              {i === 1 && (
+                <div className="flex justify-center mb-1">
+                  <svg className="w-4 h-4 fill-[#27509b]" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z" />
+                  </svg>
+                </div>
+              )}
+              {i === 2 && (
+                <div className="flex justify-center mb-1">
+                  <svg className="w-4 h-4 fill-[#fce500]" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
+                  </svg>
+                </div>
+              )}
+              <div className={`text-[9px] font-black tracking-widest ${i === 0 ? "text-white/60" : "text-[#53565a]"}`}>
+                {s.label}
+              </div>
+              <div className={`font-black text-sm mt-0.5 ${i === 0 ? "text-white" : "text-[#000c34]"}`}>
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <button className="flex items-center gap-1.5 text-gray-400 text-sm font-medium hover:text-[#27509b] transition-colors">
+          <button className="flex items-center gap-1.5 text-[#53565a] text-sm font-medium hover:text-[#27509b] transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905C11 8.102 9.5 9.5 7 10m7 0H7m0 0H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
             </svg>
             Kudo
           </button>
-          <button className="flex items-center gap-1.5 text-gray-400 text-sm hover:text-[#27509b] transition-colors">
+          <button className="flex items-center gap-1.5 text-[#53565a] text-sm hover:text-[#27509b] transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             4
           </button>
-          <button className="ml-auto bg-[#fce500] text-[#000c34] text-[11px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
-            Acheter ce pneu
-          </button>
+          <a href="#" className="ml-auto bg-[#fce500] text-[#000c34] text-[11px] font-black px-3 py-2 rounded-lg hover:bg-yellow-300 transition-colors">
+            Buy Now
+          </a>
         </div>
       </div>
     </div>

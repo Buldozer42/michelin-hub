@@ -210,9 +210,11 @@ export default function MonVeloPage() {
   // No bikes yet
   if (bikes.length === 0) {
     return (
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white min-h-screen">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <EmptyBikes />
         <SiteFooter />
+      </div>
       </div>
     );
   }
@@ -222,7 +224,8 @@ export default function MonVeloPage() {
   const isEbike = bike.type === 'E-BIKE';
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-white min-h-screen">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
       {/* ── Bike selector row ── */}
       <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1">
@@ -455,6 +458,7 @@ export default function MonVeloPage() {
           onCancel={() => setDeletingBike(null)}
         />
       )}
+    </div>
     </div>
   );
 }
