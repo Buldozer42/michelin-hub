@@ -15,7 +15,7 @@ interface ArticleCardProps {
 
 function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCount, tags, cta = true, helmet = true }: ArticleCardProps) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-md flex flex-col group hover:shadow-lg transition-shadow">
       {/* Image area */}
       <div className={`relative h-48 flex items-end overflow-hidden ${gradient}`}>
         {/* Helmet reminder overlay — per brand guidelines all cyclists must wear helmets */}
@@ -52,7 +52,7 @@ function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCo
             </p>
           )}
         </div>
-        <h3 className="font-title text-[#020e39] text-lg leading-snug">{title}</h3>
+        <h3 className="font-title text-[#000c34] text-lg leading-snug">{title}</h3>
         <p className="text-gray-500 text-sm mt-2 leading-relaxed flex-1">{excerpt}</p>
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -81,8 +81,8 @@ export default function BlogPage() {
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* ── Hero ── */}
-      <div className="rounded-2xl overflow-hidden relative bg-[#020e39] min-h-[280px] md:min-h-[360px]">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#020e39] via-[#0d2060] to-[#020e39]" />
+      <div className="rounded-2xl overflow-hidden relative bg-[#000c34] min-h-[280px] md:min-h-[360px]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#000c34] via-[#0d2060] to-[#000c34]" />
         {/* Decorative road/speed lines */}
         <div className="absolute inset-0 overflow-hidden opacity-10">
           {[...Array(5)].map((_, i) => (
@@ -106,17 +106,17 @@ export default function BlogPage() {
           </svg>
         </div>
         <div className="relative z-10 p-6 md:p-12 max-w-2xl h-full flex flex-col justify-center">
-          <span className="inline-block bg-[#fce500] text-[#020e39] text-[10px] font-black px-4 py-1.5 rounded-full w-fit mb-5 tracking-widest">
+          <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full w-fit mb-5 tracking-widest">
             À LA UNE
           </span>
           <h1 className="font-title text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
-            Passion &amp;<br />Aventure
+            Passion &amp;<br />Puissance
           </h1>
           <p className="text-white/70 text-base mt-4 leading-relaxed max-w-lg">
-            Découvrez les récits de ceux qui repoussent les limites, équipés par la performance Michelin.
-            Liberté, vitesse, endurance — votre prochaine aventure commence ici.
+            Relevez le défi d&apos;explorer les routes qui forgent les champions.
+            Récits, techniques, destinations — l&apos;adrénaline commence ici.
           </p>
-          <a href="#" className="mt-6 inline-flex items-center gap-2 bg-[#fce500] text-[#020e39] font-black text-sm px-6 py-3 rounded-xl w-fit hover:bg-yellow-300 transition-colors">
+          <a href="#" className="mt-6 inline-flex items-center gap-2 bg-[#fce500] text-[#000c34] font-black text-sm px-6 py-3.5 rounded-xl w-fit hover:bg-yellow-300 transition-colors">
             Explorer le blog
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -167,14 +167,14 @@ export default function BlogPage() {
         {/* Guide Pratique — yellow section */}
         <div className="bg-[#fce500] rounded-2xl p-6 md:p-8">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-[#020e39] rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#000c34] rounded-xl flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 fill-[#fce500]">
                 <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
               </svg>
             </div>
-            <span className="text-[#020e39] font-black text-xs tracking-widest uppercase">Guide Pratique</span>
+            <span className="text-[#000c34] font-black text-xs tracking-widest uppercase">Guide Pratique</span>
           </div>
-          <h3 className="font-title text-[#020e39] text-2xl md:text-3xl mb-6">Comment monter son pneu</h3>
+          <h3 className="font-title text-[#000c34] text-2xl md:text-3xl mb-6">Comment monter son pneu</h3>
           <ol className="space-y-3.5">
             {[
               "Vérifiez le sens de rotation indiqué sur le flanc.",
@@ -182,24 +182,24 @@ export default function BlogPage() {
               "Gonflez légèrement, puis ajustez à la pression recommandée.",
             ].map((step, i) => (
               <li key={i} className="flex gap-3 items-start">
-                <span className="w-6 h-6 bg-[#020e39] text-[#fce500] rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                <span className="w-6 h-6 bg-[#000c34] text-[#fce500] rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                   {i + 1}
                 </span>
-                <span className="text-[#020e39] text-sm leading-relaxed">{step}</span>
+                <span className="text-[#000c34] text-sm leading-relaxed">{step}</span>
               </li>
             ))}
           </ol>
           {/* Conseil Michelin box */}
           <div className="mt-6 bg-white/50 rounded-xl p-4">
-            <p className="text-[#020e39] text-[11px] font-black mb-1.5 flex items-center gap-1.5">
+            <p className="text-[#000c34] text-[11px] font-black mb-1.5 flex items-center gap-1.5">
               <span className="text-base">💡</span>
               CONSEIL MICHELIN
             </p>
-            <p className="text-[#020e39]/80 text-xs leading-relaxed italic">
+            <p className="text-[#000c34]/80 text-xs leading-relaxed italic">
               &ldquo;Un pneu bien monté réduit les frottements de 15%. Utilisez de l&apos;eau savonneuse
               sur les tringles pour faciliter la mise en place.&rdquo;
             </p>
-            <p className="text-[#020e39]/50 text-[10px] mt-2">* Ces conseils sont indicatifs. Consultez un professionnel si besoin.</p>
+            <p className="text-[#000c34]/50 text-[10px] mt-2">* Ces conseils sont indicatifs. Consultez un professionnel si besoin.</p>
           </div>
         </div>
 
@@ -218,10 +218,10 @@ export default function BlogPage() {
       </div>
 
       {/* ── Newsletter — dark conversion section ── */}
-      <div className="mt-8 bg-[#020e39] rounded-2xl p-6 md:p-10">
+      <div className="mt-8 bg-[#000c34] rounded-2xl p-6 md:p-10">
         <div className="flex flex-col md:flex-row md:items-center md:gap-12">
           <div className="md:flex-1">
-            <span className="inline-block bg-[#fce500] text-[#020e39] text-[10px] font-black px-3 py-1 rounded-full tracking-widest mb-4">
+            <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1 rounded-full tracking-widest mb-4">
               NEWSLETTER
             </span>
             <h3 className="font-title text-white text-2xl md:text-3xl leading-tight">
@@ -237,7 +237,7 @@ export default function BlogPage() {
               placeholder="votre@email.com"
               className="w-full rounded-xl px-4 py-3.5 text-sm bg-white/10 border border-white/20 outline-none placeholder-white/40 text-white focus:border-[#fce500] transition-colors"
             />
-            <button className="w-full bg-[#fce500] text-[#020e39] rounded-xl py-3.5 text-sm font-black tracking-wide hover:bg-yellow-300 transition-colors">
+            <button className="w-full bg-[#fce500] text-[#000c34] rounded-xl py-3.5 text-sm font-black tracking-wide hover:bg-yellow-300 transition-colors">
               S&apos;abonner
             </button>
           </div>

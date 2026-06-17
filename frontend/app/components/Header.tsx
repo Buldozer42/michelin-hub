@@ -61,9 +61,9 @@ export default function Header({ activeTab, onTabChange }: Props) {
     : "";
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-[0_1px_12px_rgba(0,12,52,0.08)]">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-[68px]">
 
           {/* Left: Logo */}
           <button onClick={() => handleNav("blog")} className="shrink-0">
@@ -76,10 +76,10 @@ export default function Header({ activeTab, onTabChange }: Props) {
               <button
                 key={id}
                 onClick={() => handleNav(id)}
-                className={`relative px-5 py-2 text-sm font-semibold transition-colors rounded-md ${
+                className={`relative px-5 py-2.5 text-sm font-bold transition-colors rounded-lg ${
                   activeTab === id
                     ? "text-[#27509b]"
-                    : "text-gray-500 hover:text-[#27509b] hover:bg-[#27509b]/5"
+                    : "text-[#53565a] hover:text-[#27509b] hover:bg-[#27509b]/5"
                 }`}
               >
                 {label}
@@ -109,7 +109,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                   <div className="w-8 h-8 rounded-full bg-[#27509b] flex items-center justify-center text-white text-xs font-black shrink-0">
                     {initials}
                   </div>
-                  <span className="hidden sm:block text-sm font-semibold text-[#020e39] max-w-[120px] truncate">
+                  <span className="hidden sm:block text-sm font-semibold text-[#000c34] max-w-[120px] truncate">
                     {user.firstName}
                   </span>
                   <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                     <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
                     <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20">
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                        <div className="font-semibold text-[#020e39] text-sm">
+                        <div className="font-semibold text-[#000c34] text-sm">
                           {user.firstName} {user.lastName}
                         </div>
                         <div className="text-gray-400 text-xs mt-0.5 truncate">@{user.username}</div>
@@ -136,7 +136,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                       </div>
                       <button
                         onClick={() => { handleNav("monvelo"); setUserMenuOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-[#020e39] hover:bg-gray-50 transition-colors border-b border-gray-100"
+                        className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-[#000c34] hover:bg-gray-50 transition-colors border-b border-gray-100"
                       >
                         <svg className="w-4 h-4 fill-[#27509b]" viewBox="0 0 24 24">
                           <path d="M12 3C6.48 3 2 6.48 2 12s4.48 9 10 9 10-4.03 10-9-4.48-9-10-9zm0 2c3.87 0 7.19 2.45 8.51 5.92H3.49C4.81 7.45 8.13 5 12 5zm0 14c-4.41 0-8-3.59-8-8 0-.34.02-.67.05-1h15.9c.03.33.05.66.05 1 0 4.41-3.59 8-8 8z" />
@@ -167,7 +167,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-2 text-sm font-black text-[#020e39] bg-[#fce500] hover:bg-yellow-300 rounded-xl transition-colors"
+                  className="px-4 py-2 text-sm font-black text-[#000c34] bg-[#fce500] hover:bg-yellow-300 rounded-xl transition-colors"
                 >
                   S&apos;inscrire
                 </Link>
@@ -231,7 +231,7 @@ export default function Header({ activeTab, onTabChange }: Props) {
                   Se connecter
                 </Link>
                 <Link href="/signup" onClick={() => setMenuOpen(false)}
-                  className="flex-1 text-center px-4 py-2.5 text-sm font-black text-[#020e39] bg-[#fce500] rounded-xl">
+                  className="flex-1 text-center px-4 py-2.5 text-sm font-black text-[#000c34] bg-[#fce500] rounded-xl">
                   S&apos;inscrire
                 </Link>
               </div>

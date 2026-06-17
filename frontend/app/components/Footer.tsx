@@ -25,13 +25,13 @@ function Bibendum() {
       {/* ── Head ── */}
       <ellipse cx="70" cy="54" rx="30" ry="30" fill="white" opacity="0.97" />
       {/* ── Eyes ── */}
-      <circle cx="58" cy="47" r="6" fill="#020e39" />
-      <circle cx="82" cy="47" r="6" fill="#020e39" />
+      <circle cx="58" cy="47" r="6" fill="#000c34" />
+      <circle cx="82" cy="47" r="6" fill="#000c34" />
       {/* eye highlights */}
       <circle cx="60" cy="45" r="2.5" fill="white" />
       <circle cx="84" cy="45" r="2.5" fill="white" />
       {/* ── Smile ── */}
-      <path d="M55 68 Q70 82 85 68" stroke="#020e39" strokeWidth="4" fill="none" strokeLinecap="round" />
+      <path d="M55 68 Q70 82 85 68" stroke="#000c34" strokeWidth="4" fill="none" strokeLinecap="round" />
       {/* ── Right arm raised — "Hello / Coucou" wave ── */}
       <ellipse cx="38" cy="108" rx="16" ry="11" fill="white" opacity="0.9" transform="rotate(-45 38 108)" />
       <ellipse cx="22" cy="86" rx="14" ry="10" fill="white" opacity="0.9" transform="rotate(-60 22 86)" />
@@ -67,7 +67,7 @@ const FOOTER_LINKS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-[#020e39] rounded-2xl mt-10 overflow-hidden">
+    <footer className="bg-[#000c34] rounded-2xl mt-10 overflow-hidden">
       <div className="px-6 md:px-10 pt-10 pb-6">
         {/* Top row: Bibendum + nav columns */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

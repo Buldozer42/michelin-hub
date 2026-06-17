@@ -159,7 +159,7 @@ function StravaLogo({ size = 28 }: { size?: number }) {
 /* ─── Feed card ───────────────────────────────────────────────── */
 function FeedCard({ activity }: { activity: FeedActivity }) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-md">
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -168,7 +168,7 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-[#020e39] text-sm">{activity.name}</span>
+                <span className="font-black text-[#000c34] text-sm">{activity.name}</span>
                 {activity.fromStrava && (
                   <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-500 text-[9px] font-black px-2 py-0.5 rounded-full border border-orange-200">
                     <StravaLogo size={8} /> Strava
@@ -181,7 +181,7 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
           <button className="text-gray-300 font-black text-xl leading-none">•••</button>
         </div>
 
-        <h3 className="font-title text-[#020e39] text-base">{activity.title}</h3>
+        <h3 className="font-title text-[#000c34] text-base">{activity.title}</h3>
         <p className="text-gray-400 text-xs mt-1 leading-relaxed">{activity.desc}</p>
 
         {activity.tireName && (
@@ -203,7 +203,7 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
           {activity.stats.map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-gray-400 text-[9px] font-black tracking-widest">{s.label}</div>
-              <div className="text-[#020e39] font-black text-base">{s.value}</div>
+              <div className="text-[#000c34] font-black text-base">{s.value}</div>
             </div>
           ))}
         </div>
@@ -222,7 +222,7 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
             </svg>
             4
           </button>
-          <button className="ml-auto bg-[#fce500] text-[#020e39] text-[11px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
+          <button className="ml-auto bg-[#fce500] text-[#000c34] text-[11px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
             Acheter ce pneu
           </button>
         </div>
@@ -257,7 +257,7 @@ function StravaModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="absolute inset-0 bg-[#020e39]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
         {/* step: connect */}
@@ -269,7 +269,7 @@ function StravaModal({
               </svg>
             </button>
             <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-[#020e39] rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-[#000c34] rounded-xl flex items-center justify-center">
                 <svg viewBox="0 0 36 36" className="w-8 h-8">
                   <ellipse cx="18" cy="10" rx="7" ry="7" fill="white" />
                   <ellipse cx="18" cy="22" rx="10" ry="7" fill="white" />
@@ -281,7 +281,7 @@ function StravaModal({
                 <StravaLogo size={30} />
               </div>
             </div>
-            <h2 className="font-title text-[#020e39] text-2xl text-center">Connectez Strava</h2>
+            <h2 className="font-title text-[#000c34] text-2xl text-center">Connectez Strava</h2>
             <p className="text-gray-500 text-sm text-center mt-1 mb-5">
               Importez vos sorties et participez aux défis Michelin
             </p>
@@ -293,11 +293,11 @@ function StravaModal({
               ].map((b) => (
                 <div key={b} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-[#fce500] flex items-center justify-center shrink-0 mt-0.5">
-                    <svg className="w-3 h-3" fill="none" stroke="#020e39" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3" fill="none" stroke="#000c34" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span className="text-[#020e39] text-sm">{b}</span>
+                  <span className="text-[#000c34] text-sm">{b}</span>
                 </div>
               ))}
             </div>
@@ -324,7 +324,7 @@ function StravaModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
-            <div className="font-title text-[#020e39] text-lg mb-1">Connexion en cours…</div>
+            <div className="font-title text-[#000c34] text-lg mb-1">Connexion en cours…</div>
             <p className="text-gray-400 text-sm text-center">Redirection vers Strava pour autorisation…</p>
           </div>
         )}
@@ -343,7 +343,7 @@ function StravaModal({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-[#020e39] text-sm">{userDisplayName}</span>
+                  <span className="font-black text-[#000c34] text-sm">{userDisplayName}</span>
                   <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">✓ Connecté</span>
                 </div>
                 <div className="text-gray-400 text-[11px]">
@@ -353,7 +353,7 @@ function StravaModal({
               <StravaLogo size={22} />
             </div>
 
-            <h3 className="font-title text-[#020e39] text-lg mb-1">Sorties récentes à importer</h3>
+            <h3 className="font-title text-[#000c34] text-lg mb-1">Sorties récentes à importer</h3>
             <p className="text-gray-400 text-xs mb-4">
               Sélectionnez les activités (Activity) à ajouter au défi
             </p>
@@ -384,7 +384,7 @@ function StravaModal({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-black text-[#020e39] text-sm truncate">{a.name}</div>
+                    <div className="font-black text-[#000c34] text-sm truncate">{a.name}</div>
                     <div className="text-gray-400 text-[11px] flex items-center gap-2 mt-0.5">
                       <span>{a.distance} km</span>
                       <span className="text-gray-300">•</span>
@@ -405,7 +405,7 @@ function StravaModal({
               disabled={selectedCount === 0}
               className={`w-full rounded-xl py-3.5 font-black text-sm transition-colors ${
                 selectedCount > 0
-                  ? "bg-[#fce500] text-[#020e39] hover:bg-yellow-300"
+                  ? "bg-[#fce500] text-[#000c34] hover:bg-yellow-300"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               }`}
             >
@@ -427,12 +427,12 @@ function StravaModal({
         {step === "syncing" && (
           <div className="p-8 flex flex-col items-center justify-center min-h-[260px]">
             <div className="w-16 h-16 bg-[#fce500]/20 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-[#020e39] animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-[#000c34] animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
-            <div className="font-title text-[#020e39] text-lg mb-1">Synchronisation…</div>
+            <div className="font-title text-[#000c34] text-lg mb-1">Synchronisation…</div>
             <p className="text-gray-400 text-sm text-center">
               Import de {selectedCount} sortie{selectedCount > 1 ? "s" : ""} depuis Strava
             </p>
@@ -451,7 +451,7 @@ function SyncSuccessToast({ count, onDone }: { count: number; onDone: () => void
   }, [onDone]);
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#020e39] text-white px-5 py-3.5 rounded-2xl shadow-2xl">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#000c34] text-white px-5 py-3.5 rounded-2xl shadow-2xl">
       <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shrink-0">
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -563,8 +563,8 @@ export default function StravaSection() {
   return (
     <>
       {/* ── Challenge hero ── */}
-      <div className="rounded-2xl overflow-hidden relative bg-[#020e39] min-h-[240px] md:min-h-[320px]">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#020e39] via-[#0d1a5a] to-[#020e39]" />
+      <div className="rounded-2xl overflow-hidden relative bg-[#000c34] min-h-[240px] md:min-h-[320px]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#000c34] via-[#0d1a5a] to-[#000c34]" />
         <div className="absolute right-0 bottom-0 w-56 h-56 md:w-80 md:h-80 opacity-15">
           <svg viewBox="0 0 200 200" className="w-full h-full">
             <ellipse cx="130" cy="22" rx="16" ry="10" fill="white" />
@@ -579,7 +579,7 @@ export default function StravaSection() {
         <div className="relative z-10 p-6 md:p-12 max-w-xl">
           {/* Challenge entity: status + objectiveType */}
           <div className="flex items-center gap-2 mb-4">
-            <span className="inline-block bg-[#fce500] text-[#020e39] text-[10px] font-black px-4 py-1.5 rounded-full tracking-widest">
+            <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full tracking-widest">
               {CHALLENGE.status}
             </span>
             <span className="text-white/50 text-[10px] font-semibold tracking-widest">
@@ -626,9 +626,9 @@ export default function StravaSection() {
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               onClick={handleOpenModal}
-              className="bg-[#fce500] text-[#020e39] rounded-xl px-6 py-3 text-sm font-black hover:bg-yellow-300 transition-colors inline-flex items-center gap-2"
+              className="bg-[#fce500] text-[#000c34] rounded-xl px-6 py-3.5 text-sm font-black hover:bg-yellow-300 transition-colors inline-flex items-center gap-2"
             >
-              {isParticipating ? "Synchroniser mes sorties" : "Participer au Défi"}
+              {isParticipating ? "Synchroniser mes sorties" : "Relevez le Défi"}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
@@ -661,8 +661,8 @@ export default function StravaSection() {
       {/* ── Activity feed ── */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-title text-[#020e39] text-xl flex items-center gap-2">
-            <span className="text-[#fce500] bg-[#020e39] w-7 h-7 rounded-lg flex items-center justify-center text-sm">⚡</span>
+          <h2 className="font-title text-[#000c34] text-xl flex items-center gap-2">
+            <span className="text-[#fce500] bg-[#000c34] w-7 h-7 rounded-lg flex items-center justify-center text-sm">⚡</span>
             Flux d&apos;activités
           </h2>
           {isConnected && (

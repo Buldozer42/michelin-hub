@@ -60,7 +60,7 @@ export default function OnboardingPage() {
             <span className="font-semibold text-green-600">Compte créé</span>
             <div className="w-8 h-px bg-gray-300" />
             <div className="w-5 h-5 rounded-full bg-[#27509b] flex items-center justify-center text-white font-black text-[10px]">2</div>
-            <span className="font-semibold text-[#020e39]">Mon vélo</span>
+            <span className="font-semibold text-[#000c34]">Mon vélo</span>
           </div>
         </div>
       </div>
@@ -71,8 +71,8 @@ export default function OnboardingPage() {
 
           {/* Welcome header */}
           <div className="mb-6">
-            <h1 className="font-title text-[#020e39] text-3xl leading-tight">
-              Bienvenue, {user.firstName}&nbsp;! 👋
+            <h1 className="font-title text-[#000c34] text-3xl leading-tight">
+              Bienvenue, {user.firstName}&nbsp;!
             </h1>
             <p className="text-gray-500 text-sm mt-2 leading-relaxed">
               Avant de commencer, dites-nous quel vélo vous utilisez. Vous pourrez en ajouter d&apos;autres plus tard depuis &ldquo;Mon Vélo&rdquo;.

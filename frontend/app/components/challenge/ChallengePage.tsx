@@ -25,7 +25,7 @@ export default function ChallengePage() {
         <div className="space-y-5">
 
           {/* EcologicalImpact entity — community aggregate */}
-          <div className="bg-[#020e39] rounded-2xl p-5">
+          <div className="bg-[#000c34] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4 fill-green-400" viewBox="0 0 24 24">
@@ -57,8 +57,8 @@ export default function ChallengePage() {
                 LE CHOIX DES EXPERTS
               </span>
             </div>
-            <h3 className="font-title text-[#020e39] text-xl text-center">Michelin Power Cup</h3>
-            <div className="mx-auto w-32 h-32 bg-[#020e39] rounded-2xl my-4 flex items-center justify-center">
+            <h3 className="font-title text-[#000c34] text-xl text-center">Michelin Power Cup</h3>
+            <div className="mx-auto w-32 h-32 bg-[#000c34] rounded-2xl my-4 flex items-center justify-center">
               <svg viewBox="0 0 80 80" className="w-24 h-24">
                 <ellipse cx="40" cy="40" rx="11" ry="34" fill="white" stroke="black" strokeWidth="2.5" />
                 <ellipse cx="40" cy="40" rx="34" ry="11" fill="white" stroke="black" strokeWidth="2.5" />
@@ -74,19 +74,19 @@ export default function ChallengePage() {
             <p className="text-gray-500 text-xs text-center italic leading-relaxed">
               &ldquo;La vitesse sans compromis.<br />Performance brute sur le bitume.&rdquo;
             </p>
-            <button className="w-full mt-4 bg-[#fce500] text-[#020e39] rounded-xl py-3 text-sm font-black hover:bg-yellow-300 transition-colors">
+            <button className="w-full mt-4 bg-[#fce500] text-[#000c34] rounded-xl py-3.5 text-sm font-black hover:bg-yellow-300 transition-colors min-h-[48px]">
               Acheter ce pneu
             </button>
           </div>
 
           {/* Top Performeurs */}
           <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h3 className="font-title text-[#020e39] text-base flex items-center gap-2 mb-4">
+            <h3 className="font-title text-[#000c34] text-base flex items-center gap-2 mb-4">
               🏆 Top Performeurs
             </h3>
             <div className="space-y-3">
               {[
-                { rank: 1, name: "Marc V.", km: "1 240 km / mois", style: "text-[#fce500] bg-[#020e39]" },
+                { rank: 1, name: "Marc V.", km: "1 240 km / mois", style: "text-[#fce500] bg-[#000c34]" },
                 { rank: 2, name: "Sophie L.", km: "980 km / mois", style: "text-gray-400 bg-gray-100" },
                 { rank: 3, name: "Thomas D.", km: "915 km / mois", style: "text-orange-400 bg-orange-50" },
               ].map(({ rank, name, km, style }) => (
@@ -96,7 +96,7 @@ export default function ChallengePage() {
                   </span>
                   <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-black text-[#020e39] text-sm">{name}</div>
+                    <div className="font-black text-[#000c34] text-sm">{name}</div>
                     <div className="text-gray-400 text-[11px]">{km}</div>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export default function ChallengePage() {
                 </svg>
               </div>
               <div>
-                <div className="font-black text-[#020e39] text-sm">Besoin d&apos;aide ?</div>
+                <div className="font-black text-[#000c34] text-sm">Besoin d&apos;aide ?</div>
                 <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
                   Nos experts vous conseillent sur le choix de vos pneus.
                 </p>

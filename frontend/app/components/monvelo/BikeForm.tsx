@@ -119,7 +119,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
       {/* Header */}
       {asModal && (
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-title text-[#020e39] text-xl">
+          <h2 className="font-title text-[#000c34] text-xl">
             {bike ? 'Modifier le vélo' : 'Ajouter un vélo'}
           </h2>
           <button onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors p-1">
@@ -133,7 +133,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* ── Type selector ── */}
         <div>
-          <label className="block text-sm font-semibold text-[#020e39] mb-3">
+          <label className="block text-sm font-semibold text-[#000c34] mb-3">
             Type de vélo <span className="text-red-400">*</span>
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -165,7 +165,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
 
         {/* ── Nom ── */}
         <div>
-          <label className="block text-sm font-semibold text-[#020e39] mb-1.5">
+          <label className="block text-sm font-semibold text-[#000c34] mb-1.5">
             Nom du vélo <span className="text-red-400">*</span>
           </label>
           <input
@@ -181,7 +181,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
         {/* ── Marque + Modèle ── */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-[#020e39] mb-1.5">Marque</label>
+            <label className="block text-sm font-semibold text-[#000c34] mb-1.5">Marque</label>
             <input
               type="text"
               value={form.brand}
@@ -191,7 +191,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-[#020e39] mb-1.5">Modèle</label>
+            <label className="block text-sm font-semibold text-[#000c34] mb-1.5">Modèle</label>
             <input
               type="text"
               value={form.model}
@@ -205,7 +205,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
         {/* ── Poids + Date d'achat ── */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-[#020e39] mb-1.5">
+            <label className="block text-sm font-semibold text-[#000c34] mb-1.5">
               Poids <span className="text-gray-400 font-normal">(kg)</span>
             </label>
             <input
@@ -218,7 +218,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-[#020e39] mb-1.5">Date d&apos;achat</label>
+            <label className="block text-sm font-semibold text-[#000c34] mb-1.5">Date d&apos;achat</label>
             <input
               type="date"
               value={form.purchaseDate}
@@ -230,7 +230,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
 
         {/* ── Kilométrage actuel ── */}
         <div>
-          <label className="block text-sm font-semibold text-[#020e39] mb-1.5">
+          <label className="block text-sm font-semibold text-[#000c34] mb-1.5">
             Kilométrage actuel <span className="text-gray-400 font-normal">(km)</span>
           </label>
           <input
@@ -257,14 +257,14 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-h-[48px]"
             >
               Annuler
             </button>
           )}
           <button
             type="submit"
-            className="flex-1 bg-[#fce500] text-[#020e39] rounded-xl py-3 font-black text-sm hover:bg-yellow-300 transition-colors"
+            className="flex-1 bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors min-h-[48px]"
           >
             {bike ? 'Enregistrer' : 'Ajouter ce vélo'}
           </button>
@@ -277,7 +277,7 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#020e39]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
         {body}
       </div>
