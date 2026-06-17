@@ -10,6 +10,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -41,8 +42,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 191)]
     private ?string $username = null;
+
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?StravaAccount $stravaAccount = null;
 
     public function __construct()
     {
@@ -87,7 +91,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        return (string) $this->email;
+        return (string) $this->username;
     }
 
     /**
@@ -188,6 +192,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUsername(string $username): static
     {
         $this->username = $username;
+
+        return $this;
+    }
+
+    public function getStravaAccount(): ?StravaAccount
+    {
+        return $this->stravaAccount;
+    }
+
+    public function setStravaAccount(?StravaAccount $stravaAccount): static
+    {
+        // unset the owning side of the relation if necessary
+        if ($stravaAccount === null && $this->stravaAccount !== null) {
+            $this->stravaAccount->setUser(null);
+        }
+
+        // set the owning side of the relation if necessary
+        if ($stravaAccount !== null && $stravaAccount->getUser() !== $this) {
+            $stravaAccount->setUser($this);
+        }
+
+        $this->stravaAccount = $stravaAccount;
 
         return $this;
     }

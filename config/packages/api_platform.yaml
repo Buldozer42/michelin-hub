@@ -5,3 +5,9 @@ api_platform:
         stateless: true
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
+    swagger:
+        persist_authorization: true
+        http_auth:
+            JWT:
+                scheme: bearer
+                bearerFormat: JWT

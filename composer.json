@@ -85,6 +85,7 @@
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "^4.3",
         "phpunit/phpunit": "*",
-        "symfony/maker-bundle": "^1.67"
+        "symfony/maker-bundle": "^1.67",
+        "symfony/web-profiler-bundle": "7.4.*"
     }
 }
