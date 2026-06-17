@@ -12,16 +12,30 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\Parameter;
 
 #[ORM\Entity(repositoryClass: StravaAccountRepository::class)]
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/strava/authorize',
+            uriTemplate: '/authorize',
             controller: StravaAuthorizeController::class,
             read: false,
             openapi: new Operation(
-                summary: 'Return the Strava OAuth authorization URL',
+                summary: 'Return the Strava OAuth authorization URL for a given scope',
+                description: 'Example scope : read, read_all, profile:read_all, profile:write, activity:read, activity:read_all, activity:write',
+                parameters: [
+                    new Parameter(
+                        name: 'scope',
+                        in: 'query',
+                        description: 'The Strava OAuth scope',
+                        required: false,
+                        schema: [
+                            'type' => 'string',
+                            'default' => 'read',
+                        ]
+                    ),
+                ]
             )
         ),
         new Post(

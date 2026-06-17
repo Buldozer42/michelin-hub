@@ -27,7 +27,7 @@ class LoginController extends AbstractController
         $password = $data['password'] ?? null;
 
         if (!$login || !$password) {
-            return new JsonResponse(['error' => 'L\'identifiant et le mot de passe sont requis'], 400);
+            return new JsonResponse(['error' => 'Login and password are required'], 400);
         }
 
         $user = $manager->getRepository(User::class)->findOneBy(['email' => $login]) ?? null;
@@ -36,7 +36,7 @@ class LoginController extends AbstractController
         }
 
         if (!$user || !$hasher->isPasswordValid($user, $password)) {
-            return new JsonResponse(['error' => 'Identifiants invalides'], 401);
+            return new JsonResponse(['error' => 'Invalid credentials'], 401);
         }
 
         $token = $jwtManager->create($user);

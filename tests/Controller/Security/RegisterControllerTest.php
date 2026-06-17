@@ -87,7 +87,7 @@ class RegisterControllerTest extends TestCase
 		self::assertSame(400, $response->getStatusCode());
 		self::assertSame(
 			[
-				'error' => 'Le mot de passe doit contenir 14 caracteres minimum, une majuscule, une minuscule, un chiffre et un caractere special',
+				'error' => 'The password must be at least 14 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character',
 			],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
@@ -122,7 +122,7 @@ class RegisterControllerTest extends TestCase
 
 		self::assertSame(400, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Adresse email invalide'],
+			['error' => 'Invalid email address'],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -171,7 +171,7 @@ class RegisterControllerTest extends TestCase
 
 		self::assertSame(409, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Ce compte est deja utilise'],
+			['error' => 'This account is already in use'],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -235,7 +235,7 @@ class RegisterControllerTest extends TestCase
 		self::assertSame(201, $response->getStatusCode());
 		self::assertSame(
 			[
-				'message' => 'Inscription reussie',
+				'message' => 'Registration successful',
 				'userId' => 42,
 			],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)

@@ -5,7 +5,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\User;
 
@@ -17,10 +16,10 @@ class RegisterController extends AbstractController
         UserPasswordHasherInterface $hasher,    
     ): JsonResponse
     {
-        // Récupère et valide les données de la requête
+        // Get the JSON payload from the request
         $data = json_decode($request->getContent(), true);
 
-        // Valide les champs requis et leur format
+        // Extract and validate the required fields from the payload
         $lastName = trim((string) ($data['lastName'] ?? ''));
         $firstName = trim((string) ($data['firstName'] ?? ''));
         $email = trim((string) ($data['email'] ?? ''));
@@ -36,27 +35,27 @@ class RegisterController extends AbstractController
             return $this->json(['error' => 'Tous les champs sont obligatoires'], 400);
         }
 
-        // Valide la force du mot de passe
+        // Validate the strength of the password
         if (!$this->isStrongPassword($password)) {
             return $this->json([
-                'error' => 'Le mot de passe doit contenir 14 caracteres minimum, une majuscule, une minuscule, un chiffre et un caractere special',
+                'error' => 'The password must be at least 14 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character',
             ], 400);
         }
 
-        // Valide le format de l'email
+        // Validate the email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->json(['error' => 'Adresse email invalide'], 400);
+            return $this->json(['error' => 'Invalid email address'], 400);
         }
 
-        // Vérifie que le username et l'email ne sont pas déjà utilisés
+        // Check that the username and email are not already in use
         if (
             $manager->getRepository(User::class)->findOneBy(['username' => $username]) ||
             $manager->getRepository(User::class)->findOneBy(['email' => $email])
         ) {
-            return $this->json(['error' => 'Ce compte est deja utilise'], 409);
+            return $this->json(['error' => 'This account is already in use'], 409);
         }
 
-        // Crée l'utilisateur
+        // Create the user
         $user = (new User())
             ->setUsername($username)
             ->setEmail($email)
@@ -70,52 +69,52 @@ class RegisterController extends AbstractController
         $manager->persist($user);
         $manager->flush();
 
-        // Retourne une réponse de succès avec les IDs du client et de l'utilisateur
+        // Return a success response with the user ID
         return $this->json([
-            'message' => 'Inscription reussie',
+            'message' => 'Registration successful',
             'userId' => $user->getId(),
         ], 201);
     }
 
     /**
-     * Vérifie si un mot de passe est suffisamment fort selon les critères suivants :
-     * - Au moins 14 caractères
-     * - Contient au moins une lettre majuscule
-     * - Contient au moins une lettre minuscule
-     * - Contient au moins un chiffre
-     * - Contient au moins un caractère spécial
+     * Checks if a password is strong enough according to the following criteria:
+     * - At least 14 characters
+     * - Contains at least one uppercase letter
+     * - Contient at least one lowercase letter
+     * - Contient at least one digit
+     * - Contient at least one special character
      *
-     * @param string $password Le mot de passe à vérifier
-     * @return bool true si le mot de passe est fort, false sinon
+     * @param string $password The password to check
+     * @return bool True if the password is strong, false otherwise
      */
     private function isStrongPassword(string $password): bool
     {
-        // Vérifie que le mot de passe comporte au moins 14 caractères
+        // Check the length of the password
         if (strlen($password) < 14) {
             return false;
         }
 
-        // Vérifie la présence d'au moins une majuscule
+        // Check for at least one uppercase letter
         if (!preg_match('/[A-Z]/', $password)) {
             return false;
         }
 
-        // Vérifie la présence d'au moins une minuscule
+        // Check for at least one lowercase letter
         if (!preg_match('/[a-z]/', $password)) {
             return false;
         }
 
-        // Vérifie la présence d'au moins un chiffre
+        // Check for at least one digit
         if (!preg_match('/\d/', $password)) {
             return false;
         }
 
-        // Vérifie la présence d'au moins un caractère spécial
+        // Check for at least one special character
         if (!preg_match('/[^A-Za-z0-9]/', $password)) {
             return false;
         }
 
-        // Si tous les critères sont remplis, le mot de passe est considéré comme fort
+        // If all criteria are met, the password is considered strong
         return true;
     }
 }
