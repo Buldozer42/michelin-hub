@@ -71,7 +71,7 @@ interface ArticleCardProps {
 
 function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCount, tags, href, helmet = true }: ArticleCardProps) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-md flex flex-col group hover:shadow-lg transition-shadow">
       {/* Image area */}
       <div className={`relative h-48 flex items-end overflow-hidden ${gradient}`}>
         {/* Helmet reminder overlay — per brand guidelines all cyclists must wear helmets */}
@@ -108,7 +108,7 @@ function ArticleCard({ badge, badgeColor, gradient, date, title, excerpt, viewCo
             </p>
           )}
         </div>
-        <h3 className="font-title text-[#020e39] text-lg leading-snug">{title}</h3>
+        <h3 className="font-title text-[#000c34] text-lg leading-snug">{title}</h3>
         <p className="text-gray-500 text-sm mt-2 leading-relaxed flex-1">{excerpt}</p>
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -168,8 +168,8 @@ export default function BlogPage() {
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* ── Hero ── */}
-      <div className="rounded-2xl overflow-hidden relative bg-[#020e39] min-h-[280px] md:min-h-[360px]">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#020e39] via-[#0d2060] to-[#020e39]" />
+      <div className="rounded-2xl overflow-hidden relative bg-[#000c34] min-h-[280px] md:min-h-[360px]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#000c34] via-[#0d2060] to-[#000c34]" />
         {/* Decorative road/speed lines */}
         <div className="absolute inset-0 overflow-hidden opacity-10">
           {[...Array(5)].map((_, i) => (
@@ -193,16 +193,23 @@ export default function BlogPage() {
           </svg>
         </div>
         <div className="relative z-10 p-6 md:p-12 max-w-2xl h-full flex flex-col justify-center">
-          <span className="inline-block bg-[#fce500] text-[#020e39] text-[10px] font-black px-4 py-1.5 rounded-full w-fit mb-5 tracking-widest">
+          <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full w-fit mb-5 tracking-widest">
             À LA UNE
           </span>
           <h1 className="font-title text-white text-4xl md:text-5xl lg:text-6xl leading-tight">
-            Passion &amp;<br />Aventure
+            Passion &amp;<br />Puissance
           </h1>
           <p className="text-white/70 text-base mt-4 leading-relaxed max-w-lg">
-            Découvrez les récits de ceux qui repoussent les limites, équipés par la performance Michelin.
-            Liberté, vitesse, endurance — votre prochaine aventure commence ici.
+            Relevez le défi d&apos;explorer les routes qui forgent les champions.
+            Récits, techniques, destinations — l&apos;adrénaline commence ici.
           </p>
+
+          <a href="#" className="mt-6 inline-flex items-center gap-2 bg-[#fce500] text-[#000c34] font-black text-sm px-6 py-3.5 rounded-xl w-fit hover:bg-yellow-300 transition-colors">
+            Explorer le blog
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
         </div>
       </div>
 
@@ -285,10 +292,10 @@ export default function BlogPage() {
       )}
 
       {/* ── Newsletter — dark conversion section ── */}
-      <div className="mt-8 bg-[#020e39] rounded-2xl p-6 md:p-10">
+      <div className="mt-8 bg-[#000c34] rounded-2xl p-6 md:p-10">
         <div className="flex flex-col md:flex-row md:items-center md:gap-12">
           <div className="md:flex-1">
-            <span className="inline-block bg-[#fce500] text-[#020e39] text-[10px] font-black px-3 py-1 rounded-full tracking-widest mb-4">
+            <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1 rounded-full tracking-widest mb-4">
               NEWSLETTER
             </span>
             <h3 className="font-title text-white text-2xl md:text-3xl leading-tight">
@@ -304,7 +311,7 @@ export default function BlogPage() {
               placeholder="votre@email.com"
               className="w-full rounded-xl px-4 py-3.5 text-sm bg-white/10 border border-white/20 outline-none placeholder-white/40 text-white focus:border-[#fce500] transition-colors"
             />
-            <button className="w-full bg-[#fce500] text-[#020e39] rounded-xl py-3.5 text-sm font-black tracking-wide hover:bg-yellow-300 transition-colors">
+            <button className="w-full bg-[#fce500] text-[#000c34] rounded-xl py-3.5 text-sm font-black tracking-wide hover:bg-yellow-300 transition-colors">
               S&apos;abonner
             </button>
           </div>

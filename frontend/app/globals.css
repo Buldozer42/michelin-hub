@@ -1,39 +1,73 @@
 @import "tailwindcss";
 
 /*
-  Brand fonts:
-  - Titles : Michelin Unit Titling Bold (proprietary) → fallback Arial Black / Noto Sans
-  - Body   : Noto Sans (Google Fonts, loaded via next/font)
+  Michelin Digital Brand System 2024
+  Titres : Michelin Unit Titling (Bold) → fallback Arial Black / Noto Sans
+  Corps   : Noto Sans — unités relatives en rem
 */
 
 @theme inline {
   --font-sans: var(--font-noto-sans);
   --font-title: "Michelin Unit Titling", "Arial Black", var(--font-noto-sans), sans-serif;
 
-  /* Michelin brand palette */
-  --color-michelin-blue: #27509b;
-  --color-michelin-yellow: #fce500;
-  --color-michelin-navy: #020e39;
+  /* Palette officielle Michelin 2024 */
+  --color-michelin-blue:   #27509b;   /* Bleu Michelin — référence principale */
+  --color-michelin-yellow: #fce500;   /* Jaune Michelin — accentuation / conversion */
+  --color-michelin-navy:   #000c34;   /* Midnight Blue — fonds immersifs premium */
+  --color-michelin-gray:   #53565a;   /* Gris responsable — textes secondaires */
 }
 
 :root {
-  --background: #f4f4f6;
-  --foreground: #020e39;
+  --background: #f2f2f4;
+  --foreground: #000c34;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), "Noto Sans", Arial, sans-serif;
+  line-height: 1.6;
 }
 
-/* Title utility — applies brand title font */
+/* Title utility — police de marque */
 .font-title {
   font-family: var(--font-title);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
+
+/* CTA standard Michelin — hauteur 48px */
+.btn-michelin {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+  font-weight: 900;
+  border-radius: 0.75rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-michelin-yellow {
+  background: #fce500;
+  color: #000c34;
+}
+.btn-michelin-yellow:hover { background: #ffe833; }
 
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Scrollbar premium */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }

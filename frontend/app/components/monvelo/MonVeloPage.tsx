@@ -65,7 +65,7 @@ function RatingBar({ label, value }: { label: string; value: number }) {
     <div>
       <div className="flex justify-between items-center mb-1">
         <span className="text-gray-500 text-xs">{label}</span>
-        <span className="text-[#020e39] font-black text-sm">{value}/100</span>
+        <span className="text-[#000c34] font-black text-sm">{value}/100</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
         <div className="h-2 rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
@@ -81,29 +81,29 @@ function TireCard({ tire }: { tire: typeof TIRE_FRONT }) {
     <div className="bg-white rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
-          tire.position === 'AVANT' ? 'bg-[#27509b] text-white' : 'bg-[#020e39] text-[#fce500]'
+          tire.position === 'AVANT' ? 'bg-[#27509b] text-white' : 'bg-[#000c34] text-[#fce500]'
         }`}>
           {tire.position}
         </span>
       </div>
       <div className="flex items-center gap-4 mb-4">
-        <div className="w-20 h-20 bg-[#020e39] rounded-xl flex items-center justify-center shrink-0">
+        <div className="w-20 h-20 bg-[#000c34] rounded-xl flex items-center justify-center shrink-0">
           <InMotionTire size={64} />
         </div>
         <div>
           <div className="text-[10px] text-gray-400 font-semibold">{tire.brand}</div>
-          <div className="font-title text-[#020e39] text-base leading-tight">{tire.model}</div>
+          <div className="font-title text-[#000c34] text-base leading-tight">{tire.model}</div>
           <div className="flex flex-wrap gap-1.5 mt-2">
             <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{tire.tpi} TPI</span>
             <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{tire.weight}g</span>
-            <span className="bg-[#fce500]/20 text-[#020e39] text-[9px] font-black px-2 py-0.5 rounded-full">pMax {tire.pMax} bar</span>
+            <span className="bg-[#fce500]/20 text-[#000c34] text-[9px] font-black px-2 py-0.5 rounded-full">pMax {tire.pMax} bar</span>
           </div>
         </div>
       </div>
       <div>
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-gray-400 text-xs">Kilométrage</span>
-          <span className="text-[#020e39] font-black text-xs">{tire.currentKm} / {tire.expectedLifespanKm} km</span>
+          <span className="text-[#000c34] font-black text-xs">{tire.currentKm} / {tire.expectedLifespanKm} km</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2">
           <div className="h-2 rounded-full" style={{
@@ -130,7 +130,7 @@ function BikePill({ bike, active, onClick }: { bike: Bike; active: boolean; onCl
       }`}
     >
       <div className="flex flex-col">
-        <span className={`text-xs font-black leading-none ${active ? 'text-white' : 'text-[#020e39]'}`}>
+        <span className={`text-xs font-black leading-none ${active ? 'text-white' : 'text-[#000c34]'}`}>
           {bike.name}
         </span>
         <span className={`text-[10px] mt-0.5 ${active ? 'text-white/70' : 'text-gray-400'}`}>
@@ -146,16 +146,16 @@ function EmptyBikes() {
   const router = useRouter();
   return (
     <div className="flex flex-col items-center justify-center py-20">
-      <div className="w-20 h-20 bg-[#020e39] rounded-2xl flex items-center justify-center mb-5">
+      <div className="w-20 h-20 bg-[#000c34] rounded-2xl flex items-center justify-center mb-5">
         <BikeIcon3D />
       </div>
-      <h2 className="font-title text-[#020e39] text-2xl mb-2">Aucun vélo enregistré</h2>
+      <h2 className="font-title text-[#000c34] text-2xl mb-2">Aucun vélo enregistré</h2>
       <p className="text-gray-400 text-sm text-center max-w-xs leading-relaxed mb-6">
         Ajoutez votre premier vélo pour suivre vos performances, votre kilométrage et l&apos;état de vos pneus.
       </p>
       <button
         onClick={() => router.push('/onboarding')}
-        className="bg-[#fce500] text-[#020e39] font-black text-sm px-6 py-3 rounded-xl hover:bg-yellow-300 transition-colors inline-flex items-center gap-2"
+        className="bg-[#fce500] text-[#000c34] font-black text-sm px-6 py-3.5 rounded-xl hover:bg-yellow-300 transition-colors inline-flex items-center gap-2 min-h-[48px]"
       >
         Ajouter mon premier vélo
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,9 +170,9 @@ function EmptyBikes() {
 function DeleteConfirm({ bike, onConfirm, onCancel }: { bike: Bike; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#020e39]/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <h3 className="font-title text-[#020e39] text-xl mb-2">Supprimer ce vélo ?</h3>
+        <h3 className="font-title text-[#000c34] text-xl mb-2">Supprimer ce vélo ?</h3>
         <p className="text-gray-500 text-sm leading-relaxed mb-6">
           <strong>{bike.name}</strong> sera définitivement supprimé. Cette action est irréversible.
         </p>
@@ -249,7 +249,7 @@ export default function MonVeloPage() {
       {/* ── Active bike header ── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 bg-[#020e39] rounded-2xl flex items-center justify-center shrink-0">
+          <div className="w-14 h-14 bg-[#000c34] rounded-2xl flex items-center justify-center shrink-0">
             <BikeIcon3D />
           </div>
           <div>
@@ -259,12 +259,12 @@ export default function MonVeloPage() {
               </span>
               {bike.brand && <span className="text-gray-400 text-xs">{bike.brand}</span>}
             </div>
-            <h1 className="font-title text-[#020e39] text-3xl md:text-4xl leading-none">{bike.name}</h1>
+            <h1 className="font-title text-[#000c34] text-3xl md:text-4xl leading-none">{bike.name}</h1>
             {bike.model && <p className="text-gray-400 text-sm mt-0.5">{bike.model}</p>}
             <p className="text-gray-500 text-sm mt-1">
               Distance totale :{' '}
-              <strong className="text-[#020e39]">{bike.totalDistance.toLocaleString('fr-FR')} km</strong>
-              {bike.weight && <> · <strong className="text-[#020e39]">{bike.weight} kg</strong></>}
+              <strong className="text-[#000c34]">{bike.totalDistance.toLocaleString('fr-FR')} km</strong>
+              {bike.weight && <> · <strong className="text-[#000c34]">{bike.weight} kg</strong></>}
             </p>
           </div>
         </div>
@@ -272,8 +272,8 @@ export default function MonVeloPage() {
         {/* Action buttons */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {isEbike && (
-            <span className="inline-flex items-center gap-1.5 bg-[#fce500] text-[#020e39] text-xs font-black px-3 py-2 rounded-full">
-              <svg className="w-3.5 h-3.5 fill-[#020e39]" viewBox="0 0 24 24">
+            <span className="inline-flex items-center gap-1.5 bg-[#fce500] text-[#000c34] text-xs font-black px-3 py-2 rounded-full">
+              <svg className="w-3.5 h-3.5 fill-[#000c34]" viewBox="0 0 24 24">
                 <path d="M7 2v11h3v9l7-12h-4l4-8z" />
               </svg>
               E-BIKE READY E-25
@@ -281,7 +281,7 @@ export default function MonVeloPage() {
           )}
           <button
             onClick={() => setEditingBike(bike)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-[#020e39] text-sm font-semibold rounded-xl hover:border-[#27509b] hover:text-[#27509b] transition-all shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-[#000c34] text-sm font-semibold rounded-xl hover:border-[#27509b] hover:text-[#27509b] transition-all shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -301,7 +301,7 @@ export default function MonVeloPage() {
 
       {/* ── Distance chart + EcologicalImpact ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 bg-[#020e39] rounded-2xl p-6">
+        <div className="md:col-span-2 bg-[#000c34] rounded-2xl p-6">
           <div className="flex justify-between items-start">
             <div>
               <div className="text-white/50 text-[10px] font-black tracking-[0.2em]">DISTANCE TOTALE</div>
@@ -342,11 +342,11 @@ export default function MonVeloPage() {
             </svg>
           </div>
           <div className="text-gray-400 text-[10px] font-black tracking-[0.15em]">CO2 ÉCONOMISÉ</div>
-          <div className="font-title text-[#020e39] text-4xl mt-1">
-            {ECO_IMPACT.co2SavedKg} <span className="text-2xl text-[#020e39]/50">kg</span>
+          <div className="font-title text-[#000c34] text-4xl mt-1">
+            {ECO_IMPACT.co2SavedKg} <span className="text-2xl text-[#000c34]/50">kg</span>
           </div>
           <p className="text-gray-400 text-xs mt-2">
-            ≈ <strong className="text-[#020e39]">{ECO_IMPACT.equivalentCarKm} km</strong> en voiture évités
+            ≈ <strong className="text-[#000c34]">{ECO_IMPACT.equivalentCarKm} km</strong> en voiture évités
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="bg-green-50 rounded-xl p-2.5">
@@ -354,8 +354,8 @@ export default function MonVeloPage() {
               <div className="text-green-600 text-[10px]">kcal brûlées</div>
             </div>
             <div className="bg-[#fce500]/10 rounded-xl p-2.5">
-              <div className="text-[#020e39] font-black text-sm">{ECO_IMPACT.moneySaved} €</div>
-              <div className="text-[#020e39]/50 text-[10px]">économisés</div>
+              <div className="text-[#000c34] font-black text-sm">{ECO_IMPACT.moneySaved} €</div>
+              <div className="text-[#000c34]/50 text-[10px]">économisés</div>
             </div>
           </div>
         </div>
@@ -363,8 +363,8 @@ export default function MonVeloPage() {
 
       {/* ── Tires ── */}
       <div className="mt-4">
-        <h2 className="font-title text-[#020e39] text-lg mb-3 flex items-center gap-2">
-          <span className="w-6 h-6 bg-[#020e39] rounded-lg flex items-center justify-center">
+        <h2 className="font-title text-[#000c34] text-lg mb-3 flex items-center gap-2">
+          <span className="w-6 h-6 bg-[#000c34] rounded-lg flex items-center justify-center">
             <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
               <ellipse cx="12" cy="12" rx="4" ry="10" />
               <ellipse cx="12" cy="12" rx="10" ry="4" />
@@ -382,7 +382,7 @@ export default function MonVeloPage() {
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <span className="font-title text-[#020e39] text-base">Performances Pneu</span>
+            <span className="font-title text-[#000c34] text-base">Performances Pneu</span>
             <span className="text-gray-300 text-xs">TireRating</span>
           </div>
           <div className="space-y-3.5">
@@ -396,9 +396,9 @@ export default function MonVeloPage() {
           </p>
         </div>
 
-        <div className="bg-[#020e39] rounded-2xl p-6">
+        <div className="bg-[#000c34] rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <span className="bg-[#fce500] text-[#020e39] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">
+            <span className="bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">
               AMBITION 2050
             </span>
             <span className="text-white/70 text-sm font-semibold">Tout Durable</span>
@@ -420,7 +420,7 @@ export default function MonVeloPage() {
               <div className="bg-[#fce500] h-2 rounded-full" style={{ width: '45%' }} />
             </div>
           </div>
-          <button className="mt-5 bg-[#fce500] text-[#020e39] rounded-xl px-5 py-2.5 text-sm font-black hover:bg-yellow-300 transition-colors">
+          <button className="mt-5 bg-[#fce500] text-[#000c34] rounded-xl px-5 py-2.5 text-sm font-black hover:bg-yellow-300 transition-colors">
             Découvrir nos engagements
           </button>
         </div>
