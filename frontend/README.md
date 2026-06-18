@@ -34,3 +34,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## API proxy
+
+The frontend always calls `/api/...` and Next.js rewrites those requests to Symfony.
+
+- Development: `http://localhost:8000`
+- Production: `https://michelin-hub.onrender.com`
+
+If you need to override the backend target, set `NEXT_PUBLIC_BACKEND_ORIGIN` in the environment used to build Next.js.

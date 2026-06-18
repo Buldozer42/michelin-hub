@@ -58,8 +58,13 @@ interface HydraCollection<T> {
   totalItems: number;
 }
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_PREFIX = "/api";
 const AUTH_TOKEN_KEY = "michelin_hub_token";
+
+function apiUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_PREFIX}${normalizedPath}`;
+}
 
 /* ── Auth types ─────────────────────────────────────────────────────── */
 
@@ -89,7 +94,7 @@ export interface ApiError {
 /* ── Auth API ───────────────────────────────────────────────────────── */
 
 export async function apiLogin(login: string, password: string): Promise<LoginResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/login`, {
+  const res = await fetch(apiUrl("/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ login, password }),
@@ -106,7 +111,7 @@ export async function apiRegister(payload: {
   email: string;
   password: string;
 }): Promise<RegisterResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/register`, {
+  const res = await fetch(apiUrl("/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -140,7 +145,7 @@ export interface StravaRefreshResponse {
 /* ── Strava API ────────────────────────────────────────────────────── */
 
 export async function stravaGetAuthUrl(token: string): Promise<StravaAuthUrlResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/strava/authorize`, {
+  const res = await fetch(apiUrl("/strava/authorize"), {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -149,7 +154,7 @@ export async function stravaGetAuthUrl(token: string): Promise<StravaAuthUrlResp
 }
 
 export async function stravaExchangeToken(token: string, code: string): Promise<StravaExchangeResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/strava/token/exchange`, {
+  const res = await fetch(apiUrl("/strava/token/exchange"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -163,7 +168,7 @@ export async function stravaExchangeToken(token: string, code: string): Promise<
 }
 
 export async function stravaRefreshToken(token: string): Promise<StravaRefreshResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/strava/token/refresh`, {
+  const res = await fetch(apiUrl("/strava/token/refresh"), {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -175,7 +180,7 @@ export async function stravaRefreshToken(token: string): Promise<StravaRefreshRe
 /* ── Generic fetchers ───────────────────────────────────────────────── */
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     cache: "no-store",
     ...init,
     headers: { Accept: "application/ld+json", ...(init?.headers ?? {}) },
@@ -227,7 +232,7 @@ export async function getChallenges(): Promise<ApiChallenge[]> {
 }
 
 async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json"): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     method: "POST",
     headers: {
       Accept: "application/ld+json",
@@ -241,7 +246,7 @@ async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json
 }
 
 async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     method: "PATCH",
     headers: {
       Accept: "application/ld+json",
@@ -255,7 +260,7 @@ async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function apiDelete(path: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     method: "DELETE",
     headers: {
       ...getStoredAuthHeaders(),
@@ -277,43 +282,43 @@ export type ArticlePayload = {
 };
 
 export async function createArticle(data: ArticlePayload): Promise<ApiArticle> {
-  return apiPost("/api/articles", data);
+  return apiPost("/articles", data);
 }
 
 export async function updateArticle(id: number, data: Partial<ArticlePayload>): Promise<ApiArticle> {
-  return apiPatch(`/api/articles/${id}`, data);
+  return apiPatch(`/articles/${id}`, data);
 }
 
 export async function deleteArticle(id: number): Promise<void> {
-  return apiDelete(`/api/articles/${id}`);
+  return apiDelete(`/articles/${id}`);
 }
 
 export type CategoryPayload = { name: string; slug: string; description?: string; color?: string | null };
 
 export async function createCategory(data: CategoryPayload): Promise<ApiCategory> {
-  return apiPost("/api/categories", data);
+  return apiPost("/categories", data);
 }
 
 export async function updateCategory(id: number, data: Partial<CategoryPayload>): Promise<ApiCategory> {
-  return apiPatch(`/api/categories/${id}`, data);
+  return apiPatch(`/categories/${id}`, data);
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  return apiDelete(`/api/categories/${id}`);
+  return apiDelete(`/categories/${id}`);
 }
 
 export type TagPayload = { name: string; slug: string };
 
 export async function createTag(data: TagPayload): Promise<ApiTag> {
-  return apiPost("/api/tags", data);
+  return apiPost("/tags", data);
 }
 
 export async function updateTag(id: number, data: Partial<TagPayload>): Promise<ApiTag> {
-  return apiPatch(`/api/tags/${id}`, data);
+  return apiPatch(`/tags/${id}`, data);
 }
 
 export async function deleteTag(id: number): Promise<void> {
-  return apiDelete(`/api/tags/${id}`);
+  return apiDelete(`/tags/${id}`);
 }
 
 export type ChallengePayload = {
@@ -333,18 +338,18 @@ export type ChallengePayload = {
 };
 
 export async function createChallenge(data: ChallengePayload): Promise<ApiChallenge> {
-  return apiPost("/api/challenges", data);
+  return apiPost("/challenges", data);
 }
 
 export async function updateChallenge(
   id: number,
   data: Partial<ChallengePayload>
 ): Promise<ApiChallenge> {
-  return apiPatch(`/api/challenges/${id}`, data);
+  return apiPatch(`/challenges/${id}`, data);
 }
 
 export async function deleteChallenge(id: number): Promise<void> {
-  return apiDelete(`/api/challenges/${id}`);
+  return apiDelete(`/challenges/${id}`);
 }
 
 /* ── Bike types & API ──────────────────────────────────────────────── */
@@ -396,14 +401,14 @@ async function apiBikeError(res: Response): Promise<never> {
 }
 
 export async function getBikes(token: string): Promise<ApiBike[]> {
-  const data = await apiFetch<HydraCollection<ApiBike>>('/api/bikes', {
+  const data = await apiFetch<HydraCollection<ApiBike>>('/bikes', {
     headers: bearerHeaders(token),
   });
   return data.member;
 }
 
 export async function createBike(payload: BikeCreatePayload, token: string): Promise<ApiBike> {
-  const res = await fetch(`${API_BASE_URL}/api/bikes`, {
+  const res = await fetch(apiUrl('/bikes'), {
     method: 'POST',
     headers: {
       Accept: 'application/ld+json',
@@ -421,7 +426,7 @@ export async function patchBike(
   payload: Partial<BikeCreatePayload>,
   token: string,
 ): Promise<ApiBike> {
-  const res = await fetch(`${API_BASE_URL}/api/bikes/${id}`, {
+  const res = await fetch(apiUrl(`/bikes/${id}`), {
     method: 'PATCH',
     headers: {
       Accept: 'application/ld+json',
@@ -435,7 +440,7 @@ export async function patchBike(
 }
 
 export async function destroyBike(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/bikes/${id}`, {
+  const res = await fetch(apiUrl(`/bikes/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
