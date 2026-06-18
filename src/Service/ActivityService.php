@@ -3,7 +3,12 @@
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\Challenge;
+use App\Entity\ChallengeParticipation;
+use App\Entity\Objective;
 use App\Entity\User;
+use App\Enum\ObjectiveType;
+use App\Repository\ChallengeParticipationRepository;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\CustomException\ActivitySyncException;
@@ -12,6 +17,7 @@ class ActivityService
 {
 	public function __construct(
 		private readonly ActivityRepository $activityRepository,
+		private readonly ChallengeParticipationRepository $challengeParticipationRepository,
 		private readonly StravaService $stravaService,
 		private readonly EntityManagerInterface $entityManager,
 	) {
@@ -63,11 +69,15 @@ class ActivityService
 		$deleted = $this->activityRepository->deleteByUser($user);
 
 		// Persist the new activities fetched from Strava
+		$syncedActivities = [];
 		foreach ($remoteActivities as $payload) {
 			$activity = new Activity();
 			$this->hydrateActivity($activity, $user, $payload);
 			$this->entityManager->persist($activity);
+			$syncedActivities[] = $activity;
 		}
+
+		$this->updateOngoingChallengeParticipations($user, $syncedActivities);
 		$this->entityManager->flush();
 
 		// Return the counts of synced, created, updated, and deleted activities
@@ -339,5 +349,147 @@ class ActivityService
 		}
 
 		throw new ActivitySyncException('Invalid response from Strava', 502, ['strava' => $payload]);
+	}
+
+	/**
+	 * Updates the progress of ongoing challenge participations for the given user based on their activities.
+	 * 
+	 * @param User $user The user whose challenge participations are to be updated.
+	 * @param Activity[] $activities The list of activities to consider for updating challenge progress.
+	 * @throws \InvalidArgumentException If the challenge has no objectives or if an objective type is unknown or unsupported.
+	 */
+	private function updateOngoingChallengeParticipations(User $user, array $activities): void
+	{
+		$participations = $this->challengeParticipationRepository->findBy([
+			'user' => $user,
+			'completed' => false,
+		]);
+
+		$now = new \DateTimeImmutable();
+		foreach ($participations as $participation) {
+			if (!$participation instanceof ChallengeParticipation) {
+				continue;
+			}
+
+			$challenge = $participation->getChallenge();
+			if (!$challenge instanceof Challenge || !$this->isChallengeOngoing($challenge, $now)) {
+				continue;
+			}
+
+			$progress = $this->calculateChallengeProgress($challenge, $activities);
+			$participation->setProgress($progress);
+
+			if ($progress >= 100.0) {
+				$participation->setCompleted(true);
+				if ($participation->getCompletedAt() === null) {
+					$participation->setCompletedAt($now);
+				}
+				continue;
+			}
+
+			$participation->setCompleted(false)->setCompletedAt(null);
+		}
+	}
+
+	/**
+	 * Determines if a given challenge is currently ongoing based on its start and end dates.
+	 * 
+	 * @param Challenge $challenge The challenge to be checked.
+	 * @param \DateTimeImmutable $now The current date and time for comparison.
+	 * @return bool True if the challenge is ongoing, false otherwise.
+	 */
+	private function isChallengeOngoing(Challenge $challenge, \DateTimeImmutable $now): bool
+	{
+		$startDate = $challenge->getStartDate();
+		$endDate = $challenge->getEndDate();
+
+		if ($startDate === null || $endDate === null) {
+			return false;
+		}
+
+		return $startDate <= $now && $endDate >= $now;
+	}
+
+	/**
+	 * Calculates the overall progress of a challenge based on its objectives and the provided activities.
+	 * 
+	 * @param Challenge $challenge The challenge for which the progress is to be calculated.
+	 * @param Activity[] $activities The list of activities to consider for the calculation.
+	 * @return float The calculated progress of the challenge, expressed as a percentage (0.0 to 100.0).
+	 * @throws \InvalidArgumentException If the challenge has no objectives or if an objective type is unknown or unsupported.
+	 */
+	private function calculateChallengeProgress(Challenge $challenge, array $activities): float
+	{
+		$objectives = $challenge->getObjectives()->toArray();
+		if ($objectives === []) {
+			return 0.0;
+		}
+
+		$challengeActivities = $this->filterActivitiesForChallenge($activities, $challenge);
+		$totalRatio = 0.0;
+
+		foreach ($objectives as $objective) {
+			if (!$objective instanceof Objective) {
+				continue;
+			}
+			$totalRatio += $this->calculateObjectiveRatio($objective, $challengeActivities);
+		}
+
+		return round(($totalRatio / count($objectives)) * 100, 2);
+	}
+
+	/**
+	 * Filters the given list of activities to include only those that fall within the start and end dates of the specified challenge.
+	 * 
+	 * @param array $activities The list of activities to be filtered.
+	 * @param Challenge $challenge The challenge whose start and end dates are used for filtering.
+	 * @return array The filtered list of activities that fall within the challenge's date range.
+	 * @throws \InvalidArgumentException If the challenge's start or end date is null.
+	 */
+	private function filterActivitiesForChallenge(array $activities, Challenge $challenge): array
+	{
+		$startDate = $challenge->getStartDate();
+		$endDate = $challenge->getEndDate();
+		if ($startDate === null || $endDate === null) {
+			return [];
+		}
+
+		return array_values(array_filter(
+			$activities,
+			static fn (Activity $activity): bool =>
+				$activity->getStartedAt() !== null
+				&& $activity->getStartedAt() >= $startDate
+				&& $activity->getStartedAt() <= $endDate
+		));
+	}
+
+	/**
+	 * Calculates the ratio of progress for a given objective based on the provided activities.
+	 * 
+	 * @param Objective $objective The objective for which the ratio is to be calculated.
+	 * @param Activity[] $activities The list of activities to consider for the calculation.
+	 * @return float The calculated ratio of progress for the objective, expressed as a decimal value.
+	 * @throws \InvalidArgumentException If the objective type is unknown or unsupported.
+	 */
+	private function calculateObjectiveRatio(Objective $objective, array $activities): float
+	{
+		$target = max(0.0001, $objective->getValue() ?? 0.0);
+
+		return match ($objective->getType()) {
+			ObjectiveType::DISTANCE => array_sum(array_map(
+				static fn (Activity $activity): float => $activity->getDistance() ?? 0.0,
+				$activities
+			)) / 1000 / $target,
+			ObjectiveType::ELEVATION => array_sum(array_map(
+				static fn (Activity $activity): float => $activity->getTotalElevationGain() ?? 0.0,
+				$activities
+			)) / $target,
+			ObjectiveType::DURATION => array_sum(array_map(
+				static fn (Activity $activity): float => (float) ($activity->getMovingTime() ?? 0),
+				$activities
+			)) / 60 / $target,
+			ObjectiveType::FREQUENCY => count($activities) / $target,
+			default => 0.0,
+		};
 	}
 }

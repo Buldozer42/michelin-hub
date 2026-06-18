@@ -2,12 +2,17 @@
 
 namespace App\Tests\Service;
 
+use App\Entity\Challenge;
+use App\Entity\ChallengeParticipation;
+use App\Entity\Objective;
 use App\Entity\StravaAccount;
 use App\Entity\User;
 use App\Repository\ActivityRepository;
+use App\Repository\ChallengeParticipationRepository;
 use App\Service\ActivityService;
 use App\CustomException\ActivitySyncException;
 use App\Service\StravaService;
+use App\Enum\ObjectiveType;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -18,13 +23,15 @@ class ActivityServiceTest extends TestCase
     public function testSyncUserActivitiesThrowsWhenNoStravaAccountExists(): void
     {
         $repository = $this->createMock(ActivityRepository::class);
+        $challengeParticipationRepository = $this->createMock(ChallengeParticipationRepository::class);
         $stravaService = $this->createMock(StravaService::class);
         $entityManager = $this->createMock(EntityManagerInterface::class);
 
         $repository->expects($this->never())->method('deleteByUser');
+        $challengeParticipationRepository->expects($this->never())->method('findBy');
         $entityManager->expects($this->never())->method('flush');
 
-        $service = new ActivityService($repository, $stravaService, $entityManager);
+        $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
         $this->expectException(ActivitySyncException::class);
         $this->expectExceptionMessage('No Strava account associated with this user');
@@ -35,6 +42,7 @@ class ActivityServiceTest extends TestCase
     public function testSyncUserActivitiesPersistsFetchedStravaActivities(): void
     {
         $repository = $this->createMock(ActivityRepository::class);
+        $challengeParticipationRepository = $this->createMock(ChallengeParticipationRepository::class);
         $stravaService = $this->createMock(StravaService::class);
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $user = $this->createUserWithStravaAccount();
@@ -75,6 +83,11 @@ class ActivityServiceTest extends TestCase
             ->with($user)
             ->willReturn(0);
 
+        $challengeParticipationRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user, 'completed' => false])
+            ->willReturn([]);
+
         $entityManager->expects($this->once())
             ->method('persist')
             ->with($this->callback(static function (mixed $activity) use ($user): bool {
@@ -101,7 +114,7 @@ class ActivityServiceTest extends TestCase
         $entityManager->expects($this->once())->method('flush');
         $entityManager->expects($this->never())->method('remove');
 
-        $service = new ActivityService($repository, $stravaService, $entityManager);
+        $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
         self::assertSame(
             ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
@@ -112,6 +125,7 @@ class ActivityServiceTest extends TestCase
     public function testSyncUserActivitiesDeletesExistingAndDeduplicatesRemoteIds(): void
     {
         $repository = $this->createMock(ActivityRepository::class);
+        $challengeParticipationRepository = $this->createMock(ChallengeParticipationRepository::class);
         $stravaService = $this->createMock(StravaService::class);
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $user = $this->createUserWithStravaAccount();
@@ -168,6 +182,11 @@ class ActivityServiceTest extends TestCase
             ->with($user)
             ->willReturn(1);
 
+        $challengeParticipationRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user, 'completed' => false])
+            ->willReturn([]);
+
         $entityManager->expects($this->once())
             ->method('persist')
             ->with($this->callback(static function (mixed $activity) use ($user): bool {
@@ -184,7 +203,7 @@ class ActivityServiceTest extends TestCase
 
         $entityManager->expects($this->once())->method('flush');
 
-        $service = new ActivityService($repository, $stravaService, $entityManager);
+        $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
         self::assertSame(
             ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 1],
@@ -195,6 +214,7 @@ class ActivityServiceTest extends TestCase
     public function testSyncUserActivitiesAcceptsNumericKeyedPayloadWhenContentIsValid(): void
     {
         $repository = $this->createMock(ActivityRepository::class);
+        $challengeParticipationRepository = $this->createMock(ChallengeParticipationRepository::class);
         $stravaService = $this->createMock(StravaService::class);
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $user = $this->createUserWithStravaAccount();
@@ -237,6 +257,11 @@ class ActivityServiceTest extends TestCase
             ->with($user)
             ->willReturn(0);
 
+        $challengeParticipationRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user, 'completed' => false])
+            ->willReturn([]);
+
         $entityManager->expects($this->once())
             ->method('persist')
             ->with($this->callback(static function (mixed $activity) use ($user): bool {
@@ -253,12 +278,91 @@ class ActivityServiceTest extends TestCase
 
         $entityManager->expects($this->once())->method('flush');
 
-        $service = new ActivityService($repository, $stravaService, $entityManager);
+        $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
         self::assertSame(
             ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
             $service->syncUserActivities($user)
         );
+    }
+
+    public function testSyncUserActivitiesUpdatesOngoingChallengeParticipationProgress(): void
+    {
+        $repository = $this->createMock(ActivityRepository::class);
+        $challengeParticipationRepository = $this->createMock(ChallengeParticipationRepository::class);
+        $stravaService = $this->createMock(StravaService::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $user = $this->createUserWithStravaAccount();
+
+        $challenge = (new Challenge())
+            ->setTitle('10 km in 7 days')
+            ->setDescription('Distance objective')
+            ->setStartDate(new \DateTimeImmutable('-1 day'))
+            ->setEndDate(new \DateTimeImmutable('+1 day'));
+
+        $objective = (new Objective())
+            ->setType(ObjectiveType::DISTANCE)
+            ->setValue(10.0);
+        $challenge->addObjective($objective);
+
+        $participation = (new ChallengeParticipation())
+            ->setUser($user)
+            ->setChallenge($challenge)
+            ->setProgress(0.0)
+            ->setCompleted(false)
+            ->setJoinedAt(new \DateTimeImmutable('-12 hours'))
+            ->setCompletedAt(null);
+
+        $stravaService->expects($this->once())
+            ->method('decryptToken')
+            ->with('encrypted-access-token')
+            ->willReturn('plain-access-token');
+
+        $stravaService->expects($this->once())
+            ->method('getLoggedAthleteRideActivities')
+            ->with('plain-access-token', 1, 200)
+            ->willReturn([200, [[
+                'id' => 333,
+                'name' => 'Progress ride',
+                'distance' => 5000,
+                'moving_time' => 1200,
+                'elapsed_time' => 1300,
+                'total_elevation_gain' => 50,
+                'type' => 'Ride',
+                'sport_type' => 'Ride',
+                'workout_type' => null,
+                'start_date' => (new \DateTimeImmutable('-2 hours'))->format(DATE_ATOM),
+                'location_city' => null,
+                'location_state' => null,
+                'location_country' => null,
+                'average_speed' => 4.16,
+                'max_speed' => 8.33,
+                'map' => [],
+            ]]]);
+
+        $repository->expects($this->once())
+            ->method('deleteByUser')
+            ->with($user)
+            ->willReturn(0);
+
+        $challengeParticipationRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user, 'completed' => false])
+            ->willReturn([$participation]);
+
+        $entityManager->expects($this->once())->method('persist');
+        $entityManager->expects($this->once())->method('flush');
+
+        $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
+
+        self::assertSame(
+            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
+            $service->syncUserActivities($user)
+        );
+
+        self::assertSame(50.0, $participation->getProgress());
+        self::assertFalse($participation->isCompleted());
+        self::assertNull($participation->getCompletedAt());
     }
 
     private function createUser(): User
