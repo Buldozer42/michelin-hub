@@ -170,8 +170,6 @@ export default function ChallengePage() {
             </div>
           </div>
         </div>
-
-        <SiteFooter />
       </div>
     </div>
   );

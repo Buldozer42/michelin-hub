@@ -1,11 +1,7 @@
 "use client";
 
-export type Tab = "blog" | "challenge" | "monvelo";
-
-interface Props {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
-}
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 function TrophyIcon({ active }: { active: boolean }) {
   return (
@@ -31,31 +27,34 @@ function BikeIcon({ active }: { active: boolean }) {
   );
 }
 
-const TABS: { id: Tab; label: string; Icon: React.ComponentType<{ active: boolean }> }[] = [
-  { id: "challenge", label: "Challenge", Icon: TrophyIcon },
-  { id: "blog", label: "Blog", Icon: BookIcon },
-  { id: "monvelo", label: "Mon Vélo", Icon: BikeIcon },
-];
+const TABS = [
+  { href: "/challenge", label: "Challenge", Icon: TrophyIcon },
+  { href: "/blog", label: "Blog", Icon: BookIcon },
+  { href: "/velo", label: "Mon Vélo", Icon: BikeIcon },
+] as const;
 
-export default function BottomNav({ activeTab, onTabChange }: Props) {
+export default function BottomNav() {
+  const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
   return (
     <nav className="shrink-0 bg-white border-t border-gray-200">
       <div className="flex">
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => onTabChange(id)}
+        {TABS.map(({ href, label, Icon }) => (
+          <Link
+            key={href}
+            href={href}
             className="flex-1 flex flex-col items-center gap-0.5 py-2 px-1"
           >
-            <Icon active={activeTab === id} />
+            <Icon active={isActive(href)} />
             <span
               className={`text-[10px] font-semibold leading-tight ${
-                activeTab === id ? "text-[#f5c000]" : "text-gray-400"
+                isActive(href) ? "text-[#f5c000]" : "text-gray-400"
               }`}
             >
               {label}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
     </nav>

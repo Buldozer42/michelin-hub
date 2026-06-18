@@ -18,12 +18,12 @@ export default function OnboardingPage() {
 
   // Skip onboarding if user already has bikes
   useEffect(() => {
-    if (bikesLoaded && bikes.length > 0) router.replace('/');
+    if (bikesLoaded && bikes.length > 0) router.replace('/velo');
   }, [bikes, bikesLoaded, router]);
 
   function handleSave(data: Omit<Bike, 'id'>) {
     addBike(data);
-    router.replace('/');
+    router.replace('/velo');
   }
 
   if (authLoading || !user || (bikesLoaded && bikes.length > 0)) {
@@ -83,14 +83,14 @@ export default function OnboardingPage() {
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <BikeForm
               onSave={handleSave}
-              onClose={() => router.replace('/')}
+              onClose={() => router.replace('/velo')}
               asModal={false}
             />
           </div>
 
           {/* Skip link */}
           <button
-            onClick={() => router.replace('/')}
+            onClick={() => router.replace('/velo')}
             className="w-full text-center text-sm text-gray-400 hover:text-gray-600 mt-4 py-2 transition-colors"
           >
             Passer cette étape — ajouter mon vélo plus tard
