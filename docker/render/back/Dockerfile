@@ -12,10 +12,4 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-RUN php bin/console cache:clear --env=prod || true \
- && php bin/console cache:warmup --env=prod || true \
- && php bin/console assets:install public --env=prod || true
-
-RUN php bin/console doctrine:migrations:migrate --no-interaction --env=prod || true
-
-CMD php -S 0.0.0.0:$PORT -t public
+CMD ["sh", "bin/start.sh"]
