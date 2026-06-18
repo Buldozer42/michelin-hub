@@ -883,7 +883,7 @@ export default function EditPage() {
             </p>
           </div>
           <Link
-            href="/"
+            href="/blog"
             className="flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-[#27509b] transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

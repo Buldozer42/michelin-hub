@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,23 +13,43 @@ export default function SignupPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const didSubmit = useRef(false);
 
   useEffect(() => {
-    if (!loading && user) router.replace('/');
+    if (!loading && user && !didSubmit.current) router.replace('/blog');
   }, [user, loading, router]);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [k]: e.target.value }));
 
+  function validatePassword(pw: string): string | null {
+    if (pw.length < 14) return 'Le mot de passe doit contenir au moins 14 caractères.';
+    if (!/[A-Z]/.test(pw)) return 'Le mot de passe doit contenir une majuscule.';
+    if (!/[a-z]/.test(pw)) return 'Le mot de passe doit contenir une minuscule.';
+    if (!/\d/.test(pw)) return 'Le mot de passe doit contenir un chiffre.';
+    if (!/[^A-Za-z0-9]/.test(pw)) return 'Le mot de passe doit contenir un caractère spécial.';
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError('');
+
+    const pwError = validatePassword(form.password);
+    if (pwError) {
+      setError(pwError);
+      setSubmitting(false);
+      return;
+    }
+
     try {
+      didSubmit.current = true;
       await signup(form);
       router.replace('/onboarding');
-    } catch {
-      setError('Une erreur est survenue. Réessayez.');
+    } catch (err) {
+      didSubmit.current = false;
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
     } finally {
       setSubmitting(false);
     }
@@ -168,9 +188,9 @@ export default function SignupPage() {
               <div>
                 <label className="block text-sm font-semibold text-[#000c34] mb-1.5">Mot de passe</label>
                 <input type="password" value={form.password} onChange={set('password')}
-                  placeholder="••••••••" required minLength={6} autoComplete="new-password"
+                  placeholder="••••••••" required minLength={14} autoComplete="new-password"
                   className="w-full rounded-xl px-4 py-3 text-sm border border-gray-200 outline-none focus:border-[#27509b] bg-gray-50 focus:bg-white transition-colors" />
-                <p className="text-[#53565a] text-xs mt-1">Minimum 6 caractères</p>
+                <p className="text-[#53565a] text-xs mt-1">14 caractères min., 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial</p>
               </div>
 
               {error && (

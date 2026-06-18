@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!loading && user) router.replace('/');
+    if (!loading && user) router.replace('/blog');
   }, [user, loading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,9 +23,9 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email, password);
-      router.replace('/');
-    } catch {
-      setError('Une erreur est survenue. Réessayez.');
+      router.replace('/blog');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +181,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-4 leading-relaxed">
-            Mode démo — entrez n&apos;importe quel email et mot de passe<br />pour accéder à l&apos;application.
+            Connectez-vous avec votre compte Michelin Velo Hub.
           </p>
         </div>
       </div>

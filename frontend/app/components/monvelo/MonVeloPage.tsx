@@ -429,8 +429,6 @@ export default function MonVeloPage() {
         </div>
       </div>
 
-      <SiteFooter />
-
       {showAddForm && (
         <BikeForm
           onSave={(data) => { addBike(data); setShowAddForm(false); }}

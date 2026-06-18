@@ -432,10 +432,6 @@ export default function BlogPage() {
           </div>
         </section>
       </div>
-
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <SiteFooter />
-      </div>
     </div>
   );
 }

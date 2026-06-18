@@ -1,15 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { apiLogin, apiRegister, type AuthUser } from '../lib/api';
 
-export interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  roles: string[];
-}
+export type User = AuthUser;
 
 interface SignupData {
   firstName: string;
@@ -21,6 +15,7 @@ interface SignupData {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
@@ -29,54 +24,69 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const STORAGE_KEY = 'michelin_hub_user';
+const TOKEN_KEY = 'michelin_hub_token';
+const USER_KEY = 'michelin_hub_user';
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* corrupted — ignore */ }
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
+
+    if (storedToken && storedUser && !isTokenExpired(storedToken)) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
     }
     setLoading(false);
   }, []);
 
-  async function login(email: string, _password: string) {
-    await new Promise(r => setTimeout(r, 800));
-    const prefix = email.split('@')[0];
-    const parts = prefix.split('.');
-    const firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-    const lastName = parts[1]
-      ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
-      : 'Cycliste';
-    const mock: User = { id: 1, firstName, lastName, username: prefix, email, roles: ['USER'] };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mock));
-    setUser(mock);
-  }
+  const persistSession = useCallback((jwt: string, userData: User) => {
+    localStorage.setItem(TOKEN_KEY, jwt);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    setToken(jwt);
+    setUser(userData);
+  }, []);
 
-  async function signup(data: SignupData) {
-    await new Promise(r => setTimeout(r, 1000));
-    const newUser: User = {
-      id: Date.now(),
-      firstName: data.firstName,
-      lastName: data.lastName,
-      username: data.username,
-      email: data.email,
-      roles: ['USER'],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-    setUser(newUser);
-  }
+  const login = useCallback(async (loginIdentifier: string, password: string) => {
+    const res = await apiLogin(loginIdentifier, password);
+    persistSession(res.token, res.user);
+  }, [persistSession]);
 
-  function logout() {
-    localStorage.removeItem(STORAGE_KEY);
+  const signup = useCallback(async (data: SignupData) => {
+    await apiRegister(data);
+    const res = await apiLogin(data.email, data.password);
+    persistSession(res.token, res.user);
+  }, [persistSession]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setToken(null);
     setUser(null);
-  }
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

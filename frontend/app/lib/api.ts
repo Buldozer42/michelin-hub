@@ -31,7 +31,64 @@ interface HydraCollection<T> {
   totalItems: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+/* ── Auth types ─────────────────────────────────────────────────────── */
+
+export interface AuthUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  roles: string[];
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface RegisterResponse {
+  message: string;
+  userId: number;
+}
+
+export interface ApiError {
+  error: string;
+}
+
+/* ── Auth API ───────────────────────────────────────────────────────── */
+
+export async function apiLogin(login: string, password: string): Promise<LoginResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ login, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Erreur de connexion");
+  return data as LoginResponse;
+}
+
+export async function apiRegister(payload: {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+}): Promise<RegisterResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Erreur lors de l'inscription");
+  return data as RegisterResponse;
+}
+
+/* ── Generic fetchers ───────────────────────────────────────────────── */
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
