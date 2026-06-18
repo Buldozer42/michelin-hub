@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -48,9 +50,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?StravaAccount $stravaAccount = null;
 
+    /**
+     * @var Collection<int, ChallengeParticipation>
+     */
+    #[ORM\OneToMany(targetEntity: ChallengeParticipation::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $challengeParticipations;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->challengeParticipations = new ArrayCollection();
     }
 
     /**
@@ -214,6 +223,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->stravaAccount = $stravaAccount;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ChallengeParticipation>
+     */
+    public function getChallengeParticipations(): Collection
+    {
+        return $this->challengeParticipations;
+    }
+
+    public function addChallengeParticipation(ChallengeParticipation $challengeParticipation): static
+    {
+        if (!$this->challengeParticipations->contains($challengeParticipation)) {
+            $this->challengeParticipations->add($challengeParticipation);
+            $challengeParticipation->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeChallengeParticipation(ChallengeParticipation $challengeParticipation): static
+    {
+        if ($this->challengeParticipations->removeElement($challengeParticipation)) {
+            // set the owning side to null (unless already changed)
+            if ($challengeParticipation->getUser() === $this) {
+                $challengeParticipation->setUser(null);
+            }
+        }
 
         return $this;
     }

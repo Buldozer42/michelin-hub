@@ -14,7 +14,7 @@ class UserFixturesTest extends TestCase
     {
         $objectManager = $this->createMock(ObjectManager::class);
 
-        $objectManager->expects($this->exactly(10))
+        $objectManager->expects($this->exactly(11))
             ->method('persist')
             ->with($this->isInstanceOf(User::class));
 
