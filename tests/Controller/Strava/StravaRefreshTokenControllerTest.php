@@ -1,61 +1,61 @@
 <?php
 
-namespace App\Controller\Strava;
+namespace App\Service {
+	if (!function_exists('App\\Service\\curl_init')) {
+		function curl_init(?string $url = null): object|false
+		{
+			if (\App\Tests\Support\StravaServiceCurlState::$shouldFailInit) {
+				return false;
+			}
 
-// Mock curl functions for testing StravaRefreshTokenController
-if (!function_exists('App\Controller\Strava\curl_init')) {
-	function curl_init(?string $url = null): object|false
-	{
-		if (\App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$curlShouldFailInit ?? false) {
-			return false;
+			\App\Tests\Support\StravaServiceCurlState::$lastUrl = $url;
+
+			return (object) ['url' => $url];
 		}
 
-		\App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$lastCurlUrl = $url;
+		function curl_setopt_array(object $handle, array $options): bool
+		{
+			\App\Tests\Support\StravaServiceCurlState::$lastOptions = $options;
 
-		return (object) ['url' => $url];
-	}
-
-	function curl_setopt_array(object $handle, array $options): bool
-	{
-		\App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$lastCurlOptions = $options;
-
-		return true;
-	}
-
-	function curl_exec(object $handle): string|false
-	{
-		if (\App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$curlError !== '') {
-			return false;
+			return true;
 		}
 
-		return \App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$curlResponse ?? '';
-	}
+		function curl_exec(object $handle): string|false
+		{
+			if (\App\Tests\Support\StravaServiceCurlState::$error !== '') {
+				return false;
+			}
 
-	function curl_getinfo(object $handle, int $option): int
-	{
-		if ($option === CURLINFO_HTTP_CODE) {
-			return \App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$curlStatusCode ?? 200;
+			return \App\Tests\Support\StravaServiceCurlState::$execResult ?? '';
 		}
 
-		return 0;
-	}
+		function curl_getinfo(object $handle, int $option): int
+		{
+			if ($option === CURLINFO_HTTP_CODE) {
+				return \App\Tests\Support\StravaServiceCurlState::$statusCode;
+			}
 
-	function curl_error(object $handle): string
-	{
-		return \App\Tests\Controller\Strava\StravaRefreshTokenControllerTest::$curlError ?? '';
-	}
+			return 0;
+		}
 
-	function curl_close(object $handle): void
-	{
-		// no-op for tests
+		function curl_error(object $handle): string
+		{
+			return \App\Tests\Support\StravaServiceCurlState::$error;
+		}
+
+		function curl_close(object $handle): void
+		{
+			// no-op for tests
+		}
 	}
 }
 
-namespace App\Tests\Controller\Strava;
+namespace App\Tests\Controller\Strava {
 
 use App\Controller\Strava\StravaRefreshTokenController;
 use App\Entity\StravaAccount;
 use App\Entity\User;
+use App\Tests\Support\StravaServiceCurlState;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -64,21 +64,9 @@ use Symfony\Component\DependencyInjection\Container;
 #[CoversClass(StravaRefreshTokenController::class)]
 class StravaRefreshTokenControllerTest extends TestCase
 {
-	public static ?string $lastCurlUrl = null;
-	public static array $lastCurlOptions = [];
-	public static ?string $curlResponse = null;
-	public static int $curlStatusCode = 200;
-	public static string $curlError = '';
-	public static bool $curlShouldFailInit = false;
-
 	protected function setUp(): void
 	{
-		self::$lastCurlUrl = null;
-		self::$lastCurlOptions = [];
-		self::$curlResponse = null;
-		self::$curlStatusCode = 200;
-		self::$curlError = '';
-		self::$curlShouldFailInit = false;
+		StravaServiceCurlState::reset();
 	}
 
 	public function testInvokeReturns401WhenUserIsNotAuthenticated(): void
@@ -90,7 +78,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		self::assertSame(401, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Utilisateur non authentifie'],
+			['error' => 'User not authenticated'],
 			json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -106,7 +94,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		self::assertSame(404, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Aucun compte Strava associe a cet utilisateur'],
+			['error' => 'No Strava account associated with this user'],
 			json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -129,7 +117,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		self::assertSame(400, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Aucun refresh token stocke pour ce compte'],
+			['error' => 'No refresh token stored for this account'],
 			json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -155,7 +143,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
 		self::assertArrayHasKey('error', $payload);
-		self::assertSame('Refresh token stocke invalide ou non dechiffrable', $payload['error']);
+		self::assertSame('Invalid or undecryptable stored refresh token', $payload['error']);
 	}
 
 	public function testInvokeReturns502WhenCurlInitFails(): void
@@ -170,7 +158,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlShouldFailInit = true;
+		StravaServiceCurlState::$shouldFailInit = true;
 
 		$manager->expects($this->never())->method('flush');
 
@@ -181,7 +169,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
 		self::assertArrayHasKey('error', $payload);
-		self::assertSame('Impossible de contacter Strava', $payload['error']);
+		self::assertSame('Unable to contact Strava', $payload['error']);
 	}
 
 	public function testInvokeReturns502WhenCurlExecFails(): void
@@ -196,7 +184,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlError = 'Network error';
+		StravaServiceCurlState::$error = 'Network error';
 
 		$manager->expects($this->never())->method('flush');
 
@@ -207,7 +195,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
 		self::assertArrayHasKey('error', $payload);
-		self::assertSame('Impossible de contacter Strava', $payload['error']);
+		self::assertSame('Unable to contact Strava', $payload['error']);
 	}
 
 	public function testInvokeReturns400WhenStravaRejectsTheRequest(): void
@@ -222,8 +210,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlStatusCode = 400;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 400;
+		StravaServiceCurlState::$execResult = json_encode([
 			'message' => 'Invalid request',
 			'errors' => ['refresh_token' => 'expired'],
 		], JSON_THROW_ON_ERROR);
@@ -236,7 +224,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
-		self::assertSame('Echec du rafraichissement du token OAuth avec Strava', $payload['error']);
+		self::assertSame('Error refreshing the OAuth token with Strava', $payload['error']);
 		self::assertArrayHasKey('strava', $payload);
 	}
 
@@ -252,8 +240,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlStatusCode = 200;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 200;
+		StravaServiceCurlState::$execResult = json_encode([
 			'access_token' => 'new-access-token',
 			// missing refresh_token and expires_at
 		], JSON_THROW_ON_ERROR);
@@ -266,7 +254,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
-		self::assertSame('Reponse Strava invalide', $payload['error']);
+		self::assertSame('Invalid Strava response', $payload['error']);
 	}
 
 	public function testInvokeUpdatesTokensAndPersistsWhenSuccessful(): void
@@ -285,8 +273,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlStatusCode = 200;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 200;
+		StravaServiceCurlState::$execResult = json_encode([
 			'access_token' => 'new-strava-access-token',
 			'refresh_token' => 'new-strava-refresh-token',
 			'expires_at' => $expiresAtTimestamp,
@@ -301,7 +289,7 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		$payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
 		self::assertIsArray($payload);
-		self::assertSame('Token Strava rafraichi avec succes', $payload['message']);
+		self::assertSame('Strava token refreshed successfully', $payload['message']);
 		self::assertSame('read,activity:read_all,activity:write', $payload['scope']);
 
 		// Verify tokens were updated and encrypted
@@ -325,8 +313,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope($originalScope);
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlStatusCode = 200;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 200;
+		StravaServiceCurlState::$execResult = json_encode([
 			'access_token' => 'new-strava-access-token',
 			'refresh_token' => 'new-strava-refresh-token',
 			'expires_at' => $expiresAtTimestamp,
@@ -359,8 +347,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 			->setScope('read,activity:read_all');
 		$user->setStravaAccount($stravaAccount);
 
-		self::$curlStatusCode = 200;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 200;
+		StravaServiceCurlState::$execResult = json_encode([
 			'access_token' => 'new-access-token',
 			'refresh_token' => 'new-refresh-token',
 			'expires_at' => 1_782_000_000,
@@ -374,10 +362,10 @@ class StravaRefreshTokenControllerTest extends TestCase
 		self::assertSame(200, $response->getStatusCode());
 
 		// Verify cURL was called with correct URL
-		self::assertSame('https://www.strava.com/oauth/token', self::$lastCurlUrl);
+		self::assertSame('https://www.strava.com/oauth/token', StravaServiceCurlState::$lastUrl);
 
 		// Verify POST data contains correct parameters
-		$options = self::$lastCurlOptions;
+		$options = StravaServiceCurlState::$lastOptions;
 		self::assertArrayHasKey(CURLOPT_POSTFIELDS, $options);
 
 		$postData = [];
@@ -406,8 +394,8 @@ class StravaRefreshTokenControllerTest extends TestCase
 		$reflection = new \ReflectionProperty(StravaAccount::class, 'id');
 		$reflection->setValue($stravaAccount, 99);
 
-		self::$curlStatusCode = 200;
-		self::$curlResponse = json_encode([
+		StravaServiceCurlState::$statusCode = 200;
+		StravaServiceCurlState::$execResult = json_encode([
 			'access_token' => 'new-access-token',
 			'refresh_token' => 'new-refresh-token',
 			'expires_at' => 1_782_000_000,
@@ -476,4 +464,5 @@ class StravaRefreshTokenControllerTest extends TestCase
 
 		return base64_encode($iv . $hmac . $encrypted);
 	}
+}
 }

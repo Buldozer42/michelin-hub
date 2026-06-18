@@ -5,6 +5,7 @@ namespace App\Controller\Strava;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 class StravaAuthorizeController extends AbstractController
 {
@@ -16,8 +17,9 @@ class StravaAuthorizeController extends AbstractController
     ) {
     }
 
-    public function __invoke(): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
+        $scope = (string) $request->query->get('scope', 'read');
         $authorizationUrl = sprintf(
             'https://www.strava.com/oauth/authorize?%s',
             http_build_query([
@@ -25,7 +27,7 @@ class StravaAuthorizeController extends AbstractController
                 'response_type' => 'code',
                 'redirect_uri' => $this->stravaRedirectUrl,
                 'approval_prompt' => 'force',
-                'scope' => 'read',
+                'scope' => $scope,
             ])
         );
 

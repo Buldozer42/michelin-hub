@@ -6,6 +6,7 @@ use App\Controller\Strava\StravaAuthorizeController;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\HttpFoundation\Request;
 
 #[CoversClass(StravaAuthorizeController::class)]
 class StravaAuthorizeControllerTest extends TestCase
@@ -24,7 +25,8 @@ class StravaAuthorizeControllerTest extends TestCase
 		$redirectUrl = 'https://example.test/strava/callback';
 
 		$controller = $this->createController($clientId, $redirectUrl);
-		$response = $controller->__invoke();
+		$request = Request::create('/api/strava/authorize', 'GET');
+		$response = $controller->__invoke($request);
 
 		self::assertSame(200, $response->getStatusCode());
 

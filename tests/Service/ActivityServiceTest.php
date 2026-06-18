@@ -1,0 +1,288 @@
+<?php
+
+namespace App\Tests\Service;
+
+use App\Entity\StravaAccount;
+use App\Entity\User;
+use App\Repository\ActivityRepository;
+use App\Service\ActivityService;
+use App\CustomException\ActivitySyncException;
+use App\Service\StravaService;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(ActivityService::class)]
+class ActivityServiceTest extends TestCase
+{
+    public function testSyncUserActivitiesThrowsWhenNoStravaAccountExists(): void
+    {
+        $repository = $this->createMock(ActivityRepository::class);
+        $stravaService = $this->createMock(StravaService::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+
+        $repository->expects($this->never())->method('deleteByUser');
+        $entityManager->expects($this->never())->method('flush');
+
+        $service = new ActivityService($repository, $stravaService, $entityManager);
+
+        $this->expectException(ActivitySyncException::class);
+        $this->expectExceptionMessage('No Strava account associated with this user');
+
+        $service->syncUserActivities($this->createUser());
+    }
+
+    public function testSyncUserActivitiesPersistsFetchedStravaActivities(): void
+    {
+        $repository = $this->createMock(ActivityRepository::class);
+        $stravaService = $this->createMock(StravaService::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $user = $this->createUserWithStravaAccount();
+
+        $stravaService->expects($this->once())
+            ->method('decryptToken')
+            ->with('encrypted-access-token')
+            ->willReturn('plain-access-token');
+
+        $stravaService->expects($this->once())
+            ->method('getLoggedAthleteRideActivities')
+            ->with('plain-access-token', 1, 200)
+            ->willReturn([200, [[
+                'id' => 987654321,
+                'name' => 'Morning Ride',
+                'distance' => 42195.5,
+                'moving_time' => 3600,
+                'elapsed_time' => 3800,
+                'total_elevation_gain' => 512.4,
+                'type' => 'Ride',
+                'sport_type' => 'Ride',
+                'workout_type' => 10,
+                'start_date' => '2026-06-17T06:30:00Z',
+                'location_city' => 'Clermont-Ferrand',
+                'location_state' => 'Auvergne-Rhone-Alpes',
+                'location_country' => 'France',
+                'average_speed' => 11.72,
+                'max_speed' => 19.4,
+                'map' => [
+                    'id' => 'a987654321',
+                    'summary_polyline' => 'encoded-polyline',
+                    'resource_state' => 2,
+                ],
+            ]]]);
+
+        $repository->expects($this->once())
+            ->method('deleteByUser')
+            ->with($user)
+            ->willReturn(0);
+
+        $entityManager->expects($this->once())
+            ->method('persist')
+            ->with($this->callback(static function (mixed $activity) use ($user): bool {
+                if (!$activity instanceof \App\Entity\Activity) {
+                    return false;
+                }
+
+                self::assertSame($user, $activity->getUser());
+                self::assertSame('987654321', $activity->getActivityId());
+                self::assertSame('Morning Ride', $activity->getName());
+                self::assertSame(3600, $activity->getMovingTime());
+                self::assertSame(3800, $activity->getElapsedTime());
+                self::assertSame(512.4, $activity->getTotalElevationGain());
+                self::assertSame(10, $activity->getWorkoutType());
+                self::assertSame('a987654321', $activity->getMapId());
+                self::assertSame('encoded-polyline', $activity->getMapSummaryPolyline());
+                self::assertSame(2, $activity->getMapResourceState());
+                self::assertSame(11.72, $activity->getAverageSpeed());
+                self::assertSame(19.4, $activity->getMaxSpeed());
+
+                return true;
+            }));
+
+        $entityManager->expects($this->once())->method('flush');
+        $entityManager->expects($this->never())->method('remove');
+
+        $service = new ActivityService($repository, $stravaService, $entityManager);
+
+        self::assertSame(
+            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
+            $service->syncUserActivities($user)
+        );
+    }
+
+    public function testSyncUserActivitiesDeletesExistingAndDeduplicatesRemoteIds(): void
+    {
+        $repository = $this->createMock(ActivityRepository::class);
+        $stravaService = $this->createMock(StravaService::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $user = $this->createUserWithStravaAccount();
+
+        $stravaService->expects($this->once())
+            ->method('decryptToken')
+            ->with('encrypted-access-token')
+            ->willReturn('plain-access-token');
+
+        $stravaService->expects($this->once())
+            ->method('getLoggedAthleteRideActivities')
+            ->with('plain-access-token', 1, 200)
+            ->willReturn([200, [
+                [
+                    'id' => 222,
+                    'name' => 'Ride old payload',
+                    'distance' => 1000,
+                    'moving_time' => 100,
+                    'elapsed_time' => 120,
+                    'total_elevation_gain' => 10,
+                    'type' => 'Ride',
+                    'sport_type' => 'Ride',
+                    'workout_type' => null,
+                    'start_date' => '2026-06-17T06:30:00Z',
+                    'location_city' => null,
+                    'location_state' => null,
+                    'location_country' => null,
+                    'average_speed' => 10,
+                    'max_speed' => 12,
+                    'map' => [],
+                ],
+                [
+                    'id' => 222,
+                    'name' => 'Ride latest payload',
+                    'distance' => 2000,
+                    'moving_time' => 200,
+                    'elapsed_time' => 220,
+                    'total_elevation_gain' => 20,
+                    'type' => 'Ride',
+                    'sport_type' => 'Ride',
+                    'workout_type' => null,
+                    'start_date' => '2026-06-17T07:30:00Z',
+                    'location_city' => null,
+                    'location_state' => null,
+                    'location_country' => null,
+                    'average_speed' => 11,
+                    'max_speed' => 13,
+                    'map' => [],
+                ],
+            ]]);
+
+        $repository->expects($this->once())
+            ->method('deleteByUser')
+            ->with($user)
+            ->willReturn(1);
+
+        $entityManager->expects($this->once())
+            ->method('persist')
+            ->with($this->callback(static function (mixed $activity) use ($user): bool {
+                if (!$activity instanceof \App\Entity\Activity) {
+                    return false;
+                }
+
+                self::assertSame($user, $activity->getUser());
+                self::assertSame('222', $activity->getActivityId());
+                self::assertSame('Ride latest payload', $activity->getName());
+
+                return true;
+            }));
+
+        $entityManager->expects($this->once())->method('flush');
+
+        $service = new ActivityService($repository, $stravaService, $entityManager);
+
+        self::assertSame(
+            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 1],
+            $service->syncUserActivities($user)
+        );
+    }
+
+    public function testSyncUserActivitiesAcceptsNumericKeyedPayloadWhenContentIsValid(): void
+    {
+        $repository = $this->createMock(ActivityRepository::class);
+        $stravaService = $this->createMock(StravaService::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $user = $this->createUserWithStravaAccount();
+
+        $stravaService->expects($this->once())
+            ->method('decryptToken')
+            ->with('encrypted-access-token')
+            ->willReturn('plain-access-token');
+
+        $stravaService->expects($this->once())
+            ->method('getLoggedAthleteRideActivities')
+            ->with('plain-access-token', 1, 200)
+            ->willReturn([200, [
+                1 => [
+                    'id' => '18962321531',
+                    'name' => 'Ride to die',
+                    'distance' => 2000,
+                    'moving_time' => 3600,
+                    'elapsed_time' => 3600,
+                    'total_elevation_gain' => 0,
+                    'type' => 'Ride',
+                    'sport_type' => 'Ride',
+                    'workout_type' => null,
+                    'start_date' => '2026-06-16T06:30:00Z',
+                    'location_city' => null,
+                    'location_state' => null,
+                    'location_country' => null,
+                    'average_speed' => 0.556,
+                    'max_speed' => 0,
+                    'map' => [
+                        'id' => 'a18962321531',
+                        'summary_polyline' => '',
+                        'resource_state' => 2,
+                    ],
+                ],
+            ]]);
+
+        $repository->expects($this->once())
+            ->method('deleteByUser')
+            ->with($user)
+            ->willReturn(0);
+
+        $entityManager->expects($this->once())
+            ->method('persist')
+            ->with($this->callback(static function (mixed $activity) use ($user): bool {
+                if (!$activity instanceof \App\Entity\Activity) {
+                    return false;
+                }
+
+                self::assertSame($user, $activity->getUser());
+                self::assertSame('18962321531', $activity->getActivityId());
+                self::assertSame('Ride to die', $activity->getName());
+
+                return true;
+            }));
+
+        $entityManager->expects($this->once())->method('flush');
+
+        $service = new ActivityService($repository, $stravaService, $entityManager);
+
+        self::assertSame(
+            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
+            $service->syncUserActivities($user)
+        );
+    }
+
+    private function createUser(): User
+    {
+        return (new User())
+            ->setEmail('john.doe@example.test')
+            ->setUsername('johnny')
+            ->setPassword('hashed-password')
+            ->setFirstName('John')
+            ->setLastName('Doe');
+    }
+
+    private function createUserWithStravaAccount(): User
+    {
+        $user = $this->createUser();
+        $stravaAccount = (new StravaAccount())
+            ->setAthleteId(12345)
+            ->setAccessToken('encrypted-access-token')
+            ->setRefreshToken('encrypted-refresh-token')
+            ->setTokenExpiresAt(new \DateTimeImmutable('+1 day'))
+            ->setScope('read,activity:read_all');
+
+        $user->setStravaAccount($stravaAccount);
+
+        return $user;
+    }
+}

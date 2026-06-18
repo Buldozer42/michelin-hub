@@ -47,7 +47,7 @@ class LoginControllerTest extends TestCase
 
 		self::assertSame(400, $response->getStatusCode());
 		self::assertSame(
-			['error' => "L'identifiant et le mot de passe sont requis"],
+			['error' => "Login and password are required"],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -88,7 +88,7 @@ class LoginControllerTest extends TestCase
 
 		self::assertSame(401, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Identifiants invalides'],
+			['error' => 'Invalid credentials'],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
 	}
@@ -138,7 +138,7 @@ class LoginControllerTest extends TestCase
 
 		self::assertSame(401, $response->getStatusCode());
 		self::assertSame(
-			['error' => 'Identifiants invalides'],
+			['error' => 'Invalid credentials'],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
 	}

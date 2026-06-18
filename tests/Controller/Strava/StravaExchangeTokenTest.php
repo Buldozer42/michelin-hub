@@ -1,80 +1,61 @@
 <?php
 
-namespace App\Controller\Strava {
-
-	final class StravaExchangeTokenCurlState
-	{
-		public static bool $shouldFailInit = false;
-		public static ?string $execResult = null;
-		public static int $statusCode = 200;
-		public static string $error = '';
-		public static ?string $lastUrl = null;
-		public static array $lastOptions = [];
-
-		public static function reset(): void
+namespace App\Service {
+	if (!function_exists('App\\Service\\curl_init')) {
+		function curl_init(?string $url = null): object|false
 		{
-			self::$shouldFailInit = false;
-			self::$execResult = null;
-			self::$statusCode = 200;
-			self::$error = '';
-			self::$lastUrl = null;
-			self::$lastOptions = [];
-		}
-	}
+			if (\App\Tests\Support\StravaServiceCurlState::$shouldFailInit) {
+				return false;
+			}
 
-	function curl_init(?string $url = null): object|false
-	{
-		if (StravaExchangeTokenCurlState::$shouldFailInit) {
-			return false;
+			\App\Tests\Support\StravaServiceCurlState::$lastUrl = $url;
+
+			return (object) ['url' => $url];
 		}
 
-		StravaExchangeTokenCurlState::$lastUrl = $url;
+		function curl_setopt_array(object $handle, array $options): bool
+		{
+			\App\Tests\Support\StravaServiceCurlState::$lastOptions = $options;
 
-		return (object) ['url' => $url];
-	}
-
-	function curl_setopt_array(object $handle, array $options): bool
-	{
-		StravaExchangeTokenCurlState::$lastOptions = $options;
-
-		return true;
-	}
-
-	function curl_exec(object $handle): string|false
-	{
-		if (StravaExchangeTokenCurlState::$error !== '') {
-			return false;
+			return true;
 		}
 
-		return StravaExchangeTokenCurlState::$execResult ?? '';
-	}
+		function curl_exec(object $handle): string|false
+		{
+			if (\App\Tests\Support\StravaServiceCurlState::$error !== '') {
+				return false;
+			}
 
-	function curl_getinfo(object $handle, int $option): int
-	{
-		if ($option === CURLINFO_HTTP_CODE) {
-			return StravaExchangeTokenCurlState::$statusCode;
+			return \App\Tests\Support\StravaServiceCurlState::$execResult ?? '';
 		}
 
-		return 0;
-	}
+		function curl_getinfo(object $handle, int $option): int
+		{
+			if ($option === CURLINFO_HTTP_CODE) {
+				return \App\Tests\Support\StravaServiceCurlState::$statusCode;
+			}
 
-	function curl_error(object $handle): string
-	{
-		return StravaExchangeTokenCurlState::$error;
-	}
+			return 0;
+		}
 
-	function curl_close(object $handle): void
-	{
-		// no-op for tests
+		function curl_error(object $handle): string
+		{
+			return \App\Tests\Support\StravaServiceCurlState::$error;
+		}
+
+		function curl_close(object $handle): void
+		{
+			// no-op for tests
+		}
 	}
 }
 
 namespace App\Tests\Controller\Strava {
 
 	use App\Controller\Strava\StravaExchangeToken;
-	use App\Controller\Strava\StravaExchangeTokenCurlState;
 	use App\Entity\StravaAccount;
 	use App\Entity\User;
+	use App\Tests\Support\StravaServiceCurlState;
 	use Doctrine\ORM\EntityManagerInterface;
 	use PHPUnit\Framework\Attributes\CoversClass;
 	use PHPUnit\Framework\TestCase;
@@ -86,7 +67,7 @@ namespace App\Tests\Controller\Strava {
 	{
 		protected function setUp(): void
 		{
-			StravaExchangeTokenCurlState::reset();
+			StravaServiceCurlState::reset();
 		}
 
 		public function testInvokeReturns401WhenUserIsNotAuthenticated(): void
@@ -101,7 +82,7 @@ namespace App\Tests\Controller\Strava {
 
 			self::assertSame(401, $response->getStatusCode());
 			self::assertSame(
-				['error' => 'Utilisateur non authentifie'],
+				['error' => 'User not authenticated'],
 				json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR)
 			);
 		}
@@ -128,7 +109,7 @@ namespace App\Tests\Controller\Strava {
 
 			self::assertSame(400, $response->getStatusCode());
 			self::assertSame(
-				['error' => 'Le parametre "code" est requis'],
+				['error' => 'The "code" parameter is required'],
 				json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR)
 			);
 		}
@@ -141,8 +122,8 @@ namespace App\Tests\Controller\Strava {
 			$manager->expects($this->never())->method('persist');
 			$manager->expects($this->never())->method('flush');
 
-			StravaExchangeTokenCurlState::$statusCode = 400;
-			StravaExchangeTokenCurlState::$execResult = json_encode([
+			StravaServiceCurlState::$statusCode = 400;
+			StravaServiceCurlState::$execResult = json_encode([
 				'message' => 'Bad Request',
 				'errors' => ['code' => ['invalid']],
 			], JSON_THROW_ON_ERROR);
@@ -154,7 +135,7 @@ namespace App\Tests\Controller\Strava {
 			self::assertSame(400, $response->getStatusCode());
 			self::assertSame(
 				[
-					'error' => 'Echec de l\'echange du code OAuth avec Strava',
+					'error' => 'Error during the exchange of the authorization code with Strava',
 					'strava' => [
 						'message' => 'Bad Request',
 						'errors' => ['code' => ['invalid']],
@@ -170,8 +151,8 @@ namespace App\Tests\Controller\Strava {
 			$user = $this->createUser();
 			$expiresAt = 1_782_000_000;
 
-			StravaExchangeTokenCurlState::$statusCode = 200;
-			StravaExchangeTokenCurlState::$execResult = json_encode([
+			StravaServiceCurlState::$statusCode = 200;
+			StravaServiceCurlState::$execResult = json_encode([
 				'access_token' => 'strava-access-token',
 				'refresh_token' => 'strava-refresh-token',
 				'expires_at' => $expiresAt,
@@ -217,11 +198,11 @@ namespace App\Tests\Controller\Strava {
 
 			$response = $this->createController($user)->__invoke($manager, $request);
 
-			self::assertSame('https://www.strava.com/oauth/token', StravaExchangeTokenCurlState::$lastUrl);
+			self::assertSame('https://www.strava.com/oauth/token', StravaServiceCurlState::$lastUrl);
 			self::assertSame(200, $response->getStatusCode());
 			self::assertSame(
 				[
-					'message' => 'Compte Strava connecte avec succes',
+					'message' => 'Strava account linked successfully',
 					'stravaAccountId' => 99,
 					'athleteId' => 654321,
 					'scope' => 'read,activity:read_all',
