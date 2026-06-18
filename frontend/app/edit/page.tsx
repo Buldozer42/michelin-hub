@@ -15,14 +15,25 @@ import {
   createTag,
   updateTag,
   deleteTag,
+  getGums,
+  createGum,
+  updateGum,
+  deleteGum,
+  getTireLines,
+  createTireLine,
+  updateTireLine,
+  deleteTireLine,
   type ApiArticle,
   type ApiCategory,
   type ApiTag,
+  type ApiGum,
+  type ApiTireLine,
 } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type EditTab = "articles" | "categories" | "tags";
+type EditTab = "articles" | "categories" | "tags" | "gums" | "tire-lines";
 type Status = { message: string; error: boolean } | null;
 
 // ── Utilities ────────────────────────────────────────────────────────────────
@@ -859,12 +870,352 @@ function TagsTab() {
   );
 }
 
+// ── Gums tab ──────────────────────────────────────────────────────────────────
+
+const EMPTY_GUM = { id: null as number | null, name: "", gripType: "" };
+
+function GumsTab() {
+  const { token } = useAuth();
+  const [gums, setGums] = useState<ApiGum[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<Status>(null);
+  const [form, setForm] = useState(EMPTY_GUM);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      setGums(await getGums());
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  function patch<K extends keyof typeof EMPTY_GUM>(key: K, value: (typeof EMPTY_GUM)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleEdit(gum: ApiGum) {
+    setForm({ id: gum.id, name: gum.name, gripType: gum.gripType });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleReset() {
+    setForm(EMPTY_GUM);
+    setStatus(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) { setStatus({ message: "Vous devez être connecté en tant qu'admin.", error: true }); return; }
+    const payload = { name: form.name, gripType: form.gripType };
+    try {
+      if (form.id) {
+        await updateGum(form.id, payload, token);
+        setStatus({ message: `Gomme "${form.name}" mise à jour.`, error: false });
+      } else {
+        await createGum(payload, token);
+        setStatus({ message: `Gomme "${form.name}" créée.`, error: false });
+        handleReset();
+      }
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  async function handleDelete(id: number, name: string) {
+    if (!confirm(`Supprimer la gomme "${name}" ?`)) return;
+    if (!token) return;
+    try {
+      await deleteGum(id, token);
+      setStatus({ message: `Gomme "${name}" supprimée.`, error: false });
+      if (form.id === id) handleReset();
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  return (
+    <div className="grid lg:grid-cols-[340px_1fr] gap-6 items-start">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 className="font-black text-[#000c34] text-lg mb-4">
+          {form.id ? `Modifier la gomme #${form.id}` : "Nouvelle gomme"}
+        </h2>
+        <StatusBar status={status} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Nom *">
+            <input
+              type="text" required value={form.name}
+              onChange={(e) => patch("name", e.target.value)}
+              className={CX.input} placeholder="GUM-X"
+            />
+          </Field>
+          <Field label="Type d'adhérence *">
+            <input
+              type="text" required value={form.gripType}
+              onChange={(e) => patch("gripType", e.target.value)}
+              className={CX.input} placeholder="Road racing"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Ex. Road racing, All terrain, E-bike reinforced…
+            </p>
+          </Field>
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className={CX.btnPrimary}>
+              {form.id ? "Enregistrer" : "Créer la gomme"}
+            </button>
+            {form.id && (
+              <button type="button" onClick={handleReset} className={CX.btnGhost}>Annuler</button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <h2 className="font-black text-[#000c34] text-lg">Gommes</h2>
+          <span className="text-sm font-semibold text-gray-400">({gums.length})</span>
+        </div>
+        {loading ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Chargement…</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className={CX.th}>Nom</th>
+                  <th className={CX.th}>Type d&apos;adhérence</th>
+                  <th className={CX.th} />
+                </tr>
+              </thead>
+              <tbody>
+                {gums.length === 0 ? (
+                  <EmptyRow cols={3} message="Aucune gomme pour l'instant." />
+                ) : (
+                  gums.map((gum) => (
+                    <tr key={gum.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${form.id === gum.id ? "bg-blue-50" : ""}`}>
+                      <td className={CX.td}>
+                        <span className="inline-block bg-[#000c34]/10 text-[#000c34] text-xs font-black px-2.5 py-1 rounded-full">
+                          {gum.name}
+                        </span>
+                      </td>
+                      <td className={`${CX.td} text-gray-500`}>{gum.gripType}</td>
+                      <td className={`${CX.td} whitespace-nowrap`}>
+                        <div className="flex gap-1">
+                          <button onClick={() => handleEdit(gum)} className={CX.btnEdit}>Modifier</button>
+                          <button onClick={() => handleDelete(gum.id, gum.name)} className={CX.btnDelete}>Suppr.</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── TireLines tab ─────────────────────────────────────────────────────────────
+
+const EMPTY_TIRE_LINE = {
+  id: null as number | null,
+  name: "",
+  manufacturer: "",
+  description: "",
+  url: "",
+};
+
+function TireLinesTab() {
+  const { token } = useAuth();
+  const [lines, setLines] = useState<ApiTireLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<Status>(null);
+  const [form, setForm] = useState(EMPTY_TIRE_LINE);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      setLines(await getTireLines());
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  function patch<K extends keyof typeof EMPTY_TIRE_LINE>(key: K, value: (typeof EMPTY_TIRE_LINE)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleEdit(line: ApiTireLine) {
+    setForm({ id: line.id, name: line.name, manufacturer: line.manufacturer, description: line.description ?? "", url: line.url ?? "" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleReset() {
+    setForm(EMPTY_TIRE_LINE);
+    setStatus(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) { setStatus({ message: "Vous devez être connecté en tant qu'admin.", error: true }); return; }
+    const payload = { name: form.name, manufacturer: form.manufacturer, description: form.description || null, url: form.url || null };
+    try {
+      if (form.id) {
+        await updateTireLine(form.id, payload, token);
+        setStatus({ message: `Gamme "${form.name}" mise à jour.`, error: false });
+      } else {
+        await createTireLine(payload, token);
+        setStatus({ message: `Gamme "${form.name}" créée.`, error: false });
+        handleReset();
+      }
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  async function handleDelete(id: number, name: string) {
+    if (!confirm(`Supprimer la gamme "${name}" ?\nLes pneus rattachés seront aussi affectés.`)) return;
+    if (!token) return;
+    try {
+      await deleteTireLine(id, token);
+      setStatus({ message: `Gamme "${name}" supprimée.`, error: false });
+      if (form.id === id) handleReset();
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  return (
+    <div className="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 className="font-black text-[#000c34] text-lg mb-4">
+          {form.id ? `Modifier la gamme #${form.id}` : "Nouvelle gamme de pneu"}
+        </h2>
+        <StatusBar status={status} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Nom *">
+            <input
+              type="text" required value={form.name}
+              onChange={(e) => patch("name", e.target.value)}
+              className={CX.input} placeholder="MICHELIN POWER CUP S RACING LINE"
+            />
+          </Field>
+          <Field label="Fabricant *">
+            <input
+              type="text" required value={form.manufacturer}
+              onChange={(e) => patch("manufacturer", e.target.value)}
+              className={CX.input} placeholder="Michelin"
+            />
+          </Field>
+          <Field label="Description">
+            <textarea
+              value={form.description}
+              onChange={(e) => patch("description", e.target.value)}
+              rows={4} className={CX.input}
+              placeholder="Pneu de compétition tubeless-ready…"
+            />
+          </Field>
+          <Field label="URL produit">
+            <input
+              type="url" value={form.url}
+              onChange={(e) => patch("url", e.target.value)}
+              className={CX.input} placeholder="https://www.michelin.com/…"
+            />
+          </Field>
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className={CX.btnPrimary}>
+              {form.id ? "Enregistrer" : "Créer la gamme"}
+            </button>
+            {form.id && (
+              <button type="button" onClick={handleReset} className={CX.btnGhost}>Annuler</button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <h2 className="font-black text-[#000c34] text-lg">Gammes de pneus</h2>
+          <span className="text-sm font-semibold text-gray-400">({lines.length})</span>
+        </div>
+        {loading ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Chargement…</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className={CX.th}>Nom</th>
+                  <th className={CX.th}>Fabricant</th>
+                  <th className={CX.th}>Description</th>
+                  <th className={CX.th}>URL</th>
+                  <th className={CX.th} />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.length === 0 ? (
+                  <EmptyRow cols={5} message="Aucune gamme pour l'instant." />
+                ) : (
+                  lines.map((line) => (
+                    <tr key={line.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${form.id === line.id ? "bg-blue-50" : ""}`}>
+                      <td className={CX.td}>
+                        <div className="font-semibold text-[#000c34] leading-tight text-xs max-w-[200px]">{line.name}</div>
+                      </td>
+                      <td className={`${CX.td} whitespace-nowrap`}>
+                        <span className="inline-block bg-[#fce500]/30 text-[#000c34] text-xs font-semibold px-2 py-0.5 rounded-full">
+                          {line.manufacturer}
+                        </span>
+                      </td>
+                      <td className={`${CX.td} text-gray-500 max-w-[220px]`}>
+                        {line.description
+                          ? <span className="line-clamp-2 text-xs">{line.description}</span>
+                          : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className={`${CX.td} max-w-[140px]`}>
+                        {line.url
+                          ? <a href={line.url} target="_blank" rel="noopener noreferrer" className="text-[#27509b] text-xs hover:underline truncate block">{line.url.replace(/^https?:\/\//, "").slice(0, 28)}…</a>
+                          : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className={`${CX.td} whitespace-nowrap`}>
+                        <div className="flex gap-1">
+                          <button onClick={() => handleEdit(line)} className={CX.btnEdit}>Modifier</button>
+                          <button onClick={() => handleDelete(line.id, line.name)} className={CX.btnDelete}>Suppr.</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: EditTab; label: string }[] = [
-  { id: "articles", label: "Articles" },
+  { id: "articles",   label: "Articles" },
   { id: "categories", label: "Catégories" },
-  { id: "tags", label: "Tags" },
+  { id: "tags",       label: "Tags" },
+  { id: "gums",       label: "Gommes" },
+  { id: "tire-lines", label: "Gammes de pneus" },
 ];
 
 export default function EditPage() {
@@ -916,9 +1267,11 @@ export default function EditPage() {
           ))}
         </div>
 
-        {activeTab === "articles" && <ArticlesTab />}
+        {activeTab === "articles"   && <ArticlesTab />}
         {activeTab === "categories" && <CategoriesTab />}
-        {activeTab === "tags" && <TagsTab />}
+        {activeTab === "tags"       && <TagsTab />}
+        {activeTab === "gums"       && <GumsTab />}
+        {activeTab === "tire-lines" && <TireLinesTab />}
       </div>
     </div>
   );
