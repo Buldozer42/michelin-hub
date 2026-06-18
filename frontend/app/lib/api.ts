@@ -457,3 +457,102 @@ export async function deleteTireLine(id: number, token: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 }
+
+/* ── Tire catalog (public read) ──────────────────────────────────────── */
+
+export interface ApiTireModel {
+  id: number;
+  cai: string;
+  brand: string;
+  model: string;
+  fitting: string;
+  sealing: string;
+  outerDiameter: number;
+  sectionWidth: number;
+  etrto: string;
+  tpi: string;
+  weight: number;
+  minPressureBar: number | null;
+  maxPressureBar: number | null;
+  terrainTypes: string | null;
+  tireLine: string | { id: number; name: string; manufacturer: string };
+  gum: string | { id: number; name: string } | null;
+}
+
+export async function getTireCatalog(): Promise<ApiTireModel[]> {
+  const data = await apiFetch<HydraCollection<ApiTireModel>>('/api/tires?itemsPerPage=200');
+  return data.member;
+}
+
+/* ── UserTire ─────────────────────────────────────────────────────────── */
+
+export interface ApiUserTire {
+  id: number;
+  bike: string | null;
+  tireModel: ApiTireModel | null;
+  customName: string | null;
+  position: 'front' | 'rear' | null;
+  installedAtKm: number;
+  removedAtKm: number | null;
+  expectedLifespanKm: number | null;
+  retiredAt: string | null;
+  createdAt: string;
+}
+
+export type UserTirePayload = {
+  bike?: string | null;
+  tireModel?: string | null;
+  customName?: string | null;
+  position?: 'front' | 'rear' | null;
+  installedAtKm?: number;
+  removedAtKm?: number | null;
+  expectedLifespanKm?: number | null;
+  retiredAt?: string | null;
+};
+
+export async function getUserTires(token: string): Promise<ApiUserTire[]> {
+  const data = await apiFetch<HydraCollection<ApiUserTire>>('/api/user_tires', {
+    headers: bearerHeaders(token),
+  });
+  return data.member;
+}
+
+export async function createUserTire(payload: UserTirePayload, token: string): Promise<ApiUserTire> {
+  const res = await fetch(`${API_BASE_URL}/api/user_tires`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/ld+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function patchUserTire(
+  id: number,
+  payload: Partial<UserTirePayload>,
+  token: string,
+): Promise<ApiUserTire> {
+  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/merge-patch+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function destroyUserTire(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}

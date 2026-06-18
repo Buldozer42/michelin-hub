@@ -1,28 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBikes, Bike, BIKE_TYPES } from '../../context/BikeContext';
+import { useAuth } from '../../context/AuthContext';
+import {
+  ApiUserTire, ApiTireModel,
+  getUserTires, patchUserTire, destroyUserTire,
+  getTireCatalog, UserTirePayload,
+} from '../../lib/api';
 import BikeForm from './BikeForm';
 import SiteFooter from '../Footer';
+import GarageDrawer, { GarageAssignMode } from './GarageDrawer';
 
-/* ─── Static reference data (no backend entity yet) ─────────────── */
-
-const TIRE_RATING = { rollingEfficiency: 94, punctureResistance: 72, grip: 90, durability: 78 };
-
-const TIRE_FRONT = {
-  brand: 'Michelin', model: 'Power Cup Competition', position: 'AVANT',
-  tpi: 150, weight: 185, pMax: 8.0, installedAtKm: 2840, expectedLifespanKm: 5000, currentKm: 400,
-};
-const TIRE_REAR = {
-  brand: 'Michelin', model: 'Power Cup Competition', position: 'ARRIÈRE',
-  tpi: 150, weight: 200, pMax: 7.5, installedAtKm: 2840, expectedLifespanKm: 4500, currentKm: 400,
-};
+/* ─── Static chart data ──────────────────────────────────────────────── */
 
 const BAR_DATA   = [35, 55, 45, 70, 60, 85, 100];
 const BAR_MONTHS = ['Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct'];
 
-/* ─── Helpers ─────────────────────────────────────────────────── */
+/* ─── SVG helpers ────────────────────────────────────────────────────── */
 
 function InMotionTire({ size = 80 }: { size?: number }) {
   return (
@@ -58,6 +54,368 @@ function BikeIcon3D() {
   );
 }
 
+/* ─── Tire display card ──────────────────────────────────────────────── */
+
+function TireCard({
+  tire, bikeKm,
+  onEdit, onUninstall, onDelete,
+}: {
+  tire: ApiUserTire;
+  bikeKm: number;
+  onEdit: () => void;
+  onUninstall: () => void;
+  onDelete: () => void;
+}) {
+  const pos = tire.position;
+  const displayName = tire.customName ?? tire.tireModel?.model ?? 'Pneu';
+  const brand = tire.tireModel?.brand ?? 'Michelin';
+  const etrto = tire.tireModel?.etrto;
+  const weight = tire.tireModel?.weight;
+  const tpi = tire.tireModel?.tpi;
+  const pMax = tire.tireModel?.maxPressureBar;
+
+  const currentKm = Math.max(0, bikeKm - tire.installedAtKm);
+  const lifespan = tire.expectedLifespanKm ?? 0;
+  const lifespanPct = lifespan > 0 ? Math.min(100, Math.round((currentKm / lifespan) * 100)) : 0;
+  const remaining = lifespan > 0 ? lifespan - currentKm : null;
+
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
+          pos === 'front' ? 'bg-[#27509b] text-white' : 'bg-[#000c34] text-[#fce500]'
+        }`}>
+          {pos === 'front' ? 'AVANT' : 'ARRIÈRE'}
+        </span>
+        <div className="flex gap-1">
+          <button onClick={onEdit}
+            className="px-2.5 py-1 text-[11px] font-semibold text-[#27509b] bg-[#27509b]/10 rounded-lg hover:bg-[#27509b]/20 transition-colors">
+            Modifier
+          </button>
+          <button onClick={onUninstall}
+            title="Retirer du vélo (retour en stock)"
+            className="px-2.5 py-1 text-[11px] font-semibold text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            Retirer
+          </button>
+          <button onClick={onDelete}
+            title="Supprimer définitivement"
+            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-20 h-20 bg-[#000c34] rounded-xl flex items-center justify-center shrink-0">
+          <InMotionTire size={64} />
+        </div>
+        <div className="min-w-0">
+          {tire.tireModel && (
+            <div className="text-[10px] text-gray-400 font-semibold">{brand}</div>
+          )}
+          <div className="font-title text-[#000c34] text-sm leading-tight truncate">{displayName}</div>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {etrto && <span className="bg-[#27509b]/10 text-[#27509b] text-[9px] font-black px-2 py-0.5 rounded-full">{etrto}</span>}
+            {tpi   && <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{tpi} TPI</span>}
+            {weight && <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{weight}g</span>}
+            {pMax  && <span className="bg-[#fce500]/20 text-[#000c34] text-[9px] font-black px-2 py-0.5 rounded-full">pMax {pMax} bar</span>}
+          </div>
+        </div>
+      </div>
+
+      {lifespan > 0 ? (
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-gray-400 text-xs">Kilométrage</span>
+            <span className="text-[#000c34] font-black text-xs">{Math.round(currentKm)} / {lifespan} km</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div className="h-2 rounded-full" style={{
+              width: `${lifespanPct}%`,
+              backgroundColor: lifespanPct < 50 ? '#22c55e' : lifespanPct < 80 ? '#fce500' : '#f97316',
+            }} />
+          </div>
+          <p className="text-gray-400 text-[10px] mt-1.5">
+            {remaining !== null && remaining > 0 ? `${Math.round(remaining)} km restants · ` : ''}
+            Installé à {Math.round(tire.installedAtKm)} km
+          </p>
+        </div>
+      ) : (
+        <p className="text-gray-400 text-[10px]">Installé à {Math.round(tire.installedAtKm)} km</p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Empty tire slot ────────────────────────────────────────────────── */
+
+function TireSlotEmpty({ position, onChoose }: { position: 'front' | 'rear'; onChoose: () => void }) {
+  return (
+    <button onClick={onChoose}
+      className="w-full bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-gray-200 hover:border-[#27509b] hover:bg-[#27509b]/5 transition-all group text-left">
+      <div className="flex items-center justify-between mb-4">
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
+          position === 'front' ? 'bg-[#27509b]/10 text-[#27509b]' : 'bg-gray-100 text-gray-400'
+        }`}>
+          {position === 'front' ? 'AVANT' : 'ARRIÈRE'}
+        </span>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-[#27509b]/10 transition-colors">
+          <svg className="w-8 h-8 text-gray-300 group-hover:text-[#27509b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11" />
+          </svg>
+        </div>
+        <div>
+          <div className="text-[#000c34] font-black text-sm group-hover:text-[#27509b] transition-colors">
+            Choisir depuis le garage
+          </div>
+          <div className="text-gray-400 text-xs mt-0.5">
+            {position === 'front' ? 'Roue avant' : 'Roue arrière'} · aucun pneu installé
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* ─── Tire form modal ────────────────────────────────────────────────── */
+
+type TireFormData = {
+  customName: string;
+  installedAtKm: number;
+  expectedLifespanKm: number;
+  tireModelId: number | null;
+};
+
+function TireFormModal({
+  position, existingTire, bikeKm, catalog,
+  onSave, onClose,
+}: {
+  position: 'front' | 'rear';
+  existingTire?: ApiUserTire;
+  bikeKm: number;
+  catalog: ApiTireModel[];
+  onSave: (data: TireFormData) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [customName, setCustomName]       = useState(existingTire?.customName ?? '');
+  const [installedAtKm, setInstalledAtKm] = useState(existingTire?.installedAtKm ?? bikeKm);
+  const [lifespanKm, setLifespanKm]       = useState<number | ''>(existingTire?.expectedLifespanKm ?? '');
+  const [tireModelId, setTireModelId]     = useState<number | null>(existingTire?.tireModel?.id ?? null);
+  const [search, setSearch]               = useState(
+    existingTire?.tireModel
+      ? `${existingTire.tireModel.brand} ${existingTire.tireModel.model}`
+      : ''
+  );
+  const [showDropdown, setShowDropdown]   = useState(false);
+  const [saving, setSaving]               = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+
+  const filtered = search.trim().length >= 2
+    ? catalog.filter(t =>
+        t.model.toLowerCase().includes(search.toLowerCase()) ||
+        t.etrto.toLowerCase().includes(search.toLowerCase())
+      ).slice(0, 12)
+    : [];
+
+  function selectModel(t: ApiTireModel) {
+    setTireModelId(t.id);
+    setSearch(`${t.brand} ${t.model}`);
+    if (!customName) setCustomName(t.model);
+    if (!lifespanKm) {
+      const guess = t.model.includes('RACING') ? 4000 : t.model.includes('COMPETITION') ? 6000 : t.model.includes('PERFORMANCE') ? 8000 : 10000;
+      setLifespanKm(guess);
+    }
+    setShowDropdown(false);
+  }
+
+  function clearModel() {
+    setTireModelId(null);
+    setSearch('');
+    setShowDropdown(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!customName.trim()) { setError('Le nom est requis.'); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave({
+        customName: customName.trim(),
+        installedAtKm,
+        expectedLifespanKm: typeof lifespanKm === 'number' && lifespanKm > 0 ? lifespanKm : 0,
+        tireModelId,
+      });
+    } catch (e) {
+      setError(String(e));
+      setSaving(false);
+    }
+  }
+
+  const posLabel = position === 'front' ? 'AVANT' : 'ARRIÈRE';
+  const posColor = position === 'front' ? 'bg-[#27509b] text-white' : 'bg-[#000c34] text-[#fce500]';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-3 mb-5">
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${posColor}`}>{posLabel}</span>
+          <h2 className="font-title text-[#000c34] text-xl">
+            {existingTire ? 'Modifier le pneu' : 'Ajouter un pneu'}
+          </h2>
+          <button onClick={onClose} className="ml-auto text-gray-300 hover:text-gray-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">{error}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Modèle Michelin */}
+          <div>
+            <label className="block text-xs font-black text-gray-500 mb-1.5">
+              Modèle Michelin <span className="font-normal text-gray-300">(optionnel)</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setTireModelId(null); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Chercher un pneu du catalogue…"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#27509b] pr-8"
+              />
+              {tireModelId && (
+                <button type="button" onClick={clearModel}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+              {showDropdown && filtered.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                  {filtered.map(t => (
+                    <li key={t.id}>
+                      <button type="button" onClick={() => selectModel(t)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-[#27509b]/5 transition-colors">
+                        <div className="text-xs font-semibold text-[#000c34] leading-tight">{t.model}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          {t.etrto} · {t.weight}g · {t.tpi} TPI
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {tireModelId && (
+              <p className="text-[11px] text-[#27509b] mt-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Modèle sélectionné du catalogue Michelin
+              </p>
+            )}
+          </div>
+
+          {/* Nom personnalisé */}
+          <div>
+            <label className="block text-xs font-black text-gray-500 mb-1.5">
+              Nom personnalisé <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text" required
+              value={customName}
+              onChange={e => setCustomName(e.target.value)}
+              placeholder="Ex. Mon pneu avant XC"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#27509b]"
+            />
+          </div>
+
+          {/* Kilométrage */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-black text-gray-500 mb-1.5">Installé à (km)</label>
+              <input
+                type="number" min="0" step="0.1"
+                value={installedAtKm}
+                onChange={e => setInstalledAtKm(parseFloat(e.target.value) || 0)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#27509b]"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Km du vélo à l&apos;installation</p>
+            </div>
+            <div>
+              <label className="block text-xs font-black text-gray-500 mb-1.5">Durée de vie (km)</label>
+              <input
+                type="number" min="0" step="100"
+                value={lifespanKm}
+                onChange={e => setLifespanKm(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                placeholder="Optionnel"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#27509b]"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Kilométrage estimé</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 px-4 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+              Annuler
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 px-4 py-3 text-sm font-black text-[#000c34] bg-[#fce500] rounded-xl hover:bg-yellow-300 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+              {saving && <span className="w-4 h-4 border-2 border-[#000c34]/30 border-t-[#000c34] rounded-full animate-spin" />}
+              {existingTire ? 'Enregistrer' : 'Ajouter'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Delete tire confirm ────────────────────────────────────────────── */
+
+function DeleteTireConfirm({ tire, onConfirm, onCancel }: {
+  tire: ApiUserTire; onConfirm: () => void; onCancel: () => void;
+}) {
+  const name = tire.customName ?? tire.tireModel?.model ?? 'ce pneu';
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 className="font-title text-[#000c34] text-xl mb-2">Supprimer ce pneu ?</h3>
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          <strong>{name}</strong> sera définitivement supprimé. Cette action est irréversible.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 px-4 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+            Annuler
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 px-4 py-3 text-sm font-black text-white bg-red-500 rounded-xl hover:bg-red-600">
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Rating bar ─────────────────────────────────────────────────────── */
+
 function RatingBar({ label, value }: { label: string; value: number }) {
   const color = value >= 85 ? '#22c55e' : value >= 70 ? '#fce500' : '#f97316';
   return (
@@ -73,50 +431,8 @@ function RatingBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-function TireCard({ tire }: { tire: typeof TIRE_FRONT }) {
-  const lifespanPercent = Math.round((tire.currentKm / tire.expectedLifespanKm) * 100);
-  const remaining = tire.expectedLifespanKm - tire.currentKm;
-  return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
-          tire.position === 'AVANT' ? 'bg-[#27509b] text-white' : 'bg-[#000c34] text-[#fce500]'
-        }`}>
-          {tire.position}
-        </span>
-      </div>
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-20 h-20 bg-[#000c34] rounded-xl flex items-center justify-center shrink-0">
-          <InMotionTire size={64} />
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-400 font-semibold">{tire.brand}</div>
-          <div className="font-title text-[#000c34] text-base leading-tight">{tire.model}</div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{tire.tpi} TPI</span>
-            <span className="bg-gray-100 text-gray-500 text-[9px] font-black px-2 py-0.5 rounded-full">{tire.weight}g</span>
-            <span className="bg-[#fce500]/20 text-[#000c34] text-[9px] font-black px-2 py-0.5 rounded-full">pMax {tire.pMax} bar</span>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div className="flex justify-between items-center mb-1.5">
-          <span className="text-gray-400 text-xs">Kilométrage</span>
-          <span className="text-[#000c34] font-black text-xs">{tire.currentKm} / {tire.expectedLifespanKm} km</span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2">
-          <div className="h-2 rounded-full" style={{
-            width: `${lifespanPercent}%`,
-            backgroundColor: lifespanPercent < 50 ? '#22c55e' : lifespanPercent < 80 ? '#fce500' : '#f97316',
-          }} />
-        </div>
-        <p className="text-gray-400 text-[10px] mt-1.5">{remaining} km restants · Installé à {tire.installedAtKm} km</p>
-      </div>
-    </div>
-  );
-}
+/* ─── Bike selector pill ─────────────────────────────────────────────── */
 
-/* ─── Bike selector pill ─────────────────────────────────────── */
 function BikePill({ bike, active, onClick }: { bike: Bike; active: boolean; onClick: () => void }) {
   const typeLabel = BIKE_TYPES.find(t => t.value === bike.bikeType)?.label ?? bike.bikeType;
   return (
@@ -140,7 +456,8 @@ function BikePill({ bike, active, onClick }: { bike: Bike; active: boolean; onCl
   );
 }
 
-/* ─── Empty state ────────────────────────────────────────────── */
+/* ─── Empty state ────────────────────────────────────────────────────── */
+
 function EmptyBikes() {
   const router = useRouter();
   return (
@@ -165,8 +482,11 @@ function EmptyBikes() {
   );
 }
 
-/* ─── Confirm delete dialog ──────────────────────────────────── */
-function DeleteConfirm({ bike, onConfirm, onCancel }: { bike: Bike; onConfirm: () => void; onCancel: () => void }) {
+/* ─── Confirm delete bike ────────────────────────────────────────────── */
+
+function DeleteBikeConfirm({ bike, onConfirm, onCancel }: {
+  bike: Bike; onConfirm: () => void; onCancel: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onCancel} />
@@ -190,12 +510,44 @@ function DeleteConfirm({ bike, onConfirm, onCancel }: { bike: Bike; onConfirm: (
   );
 }
 
-/* ─── Main page ──────────────────────────────────────────────── */
+/* ─── Main page ──────────────────────────────────────────────────────── */
+
 export default function MonVeloPage() {
   const { bikes, activeBike, activeBikeId, loaded, setActiveBikeId, addBike, updateBike, deleteBike } = useBikes();
-  const [showAddForm, setShowAddForm]   = useState(false);
-  const [editingBike, setEditingBike]   = useState<Bike | null>(null);
-  const [deletingBike, setDeletingBike] = useState<Bike | null>(null);
+  const { token } = useAuth();
+
+  const [showAddForm,   setShowAddForm]   = useState(false);
+  const [editingBike,   setEditingBike]   = useState<Bike | null>(null);
+  const [deletingBike,  setDeletingBike]  = useState<Bike | null>(null);
+
+  /* ── Tires state ── */
+  const [userTires,    setUserTires]    = useState<ApiUserTire[]>([]);
+  const [tiresLoaded,  setTiresLoaded]  = useState(false);
+  const [tireCatalog,  setTireCatalog]  = useState<ApiTireModel[]>([]);
+  const [tireForm, setTireForm] = useState<ApiUserTire | null>(null);
+  const [deletingTire, setDeletingTire] = useState<ApiUserTire | null>(null);
+  const [garage, setGarage] = useState<null | 'browse' | GarageAssignMode>(null);
+
+  const refreshTires = useCallback(async () => {
+    if (!token) { setTiresLoaded(true); return; }
+    try {
+      const all = await getUserTires(token);
+      setUserTires(all);
+    } catch { /* ignore */ }
+    setTiresLoaded(true);
+  }, [token]);
+
+  useEffect(() => {
+    setTiresLoaded(false);
+    setUserTires([]);
+    refreshTires();
+  }, [refreshTires]);
+
+  /* Load catalog lazily when edit form opens */
+  useEffect(() => {
+    if (!tireForm || tireCatalog.length > 0) return;
+    getTireCatalog().then(setTireCatalog).catch(() => {});
+  }, [tireForm, tireCatalog.length]);
 
   if (!loaded) {
     return (
@@ -216,9 +568,13 @@ export default function MonVeloPage() {
 
   const bike = activeBike!;
   const typeLabel = BIKE_TYPES.find(t => t.value === bike.bikeType)?.label ?? bike.bikeType;
-  const isEbike = bike.bikeType === 'electric';
+  const isEbike   = bike.bikeType === 'electric';
 
-  /* ── Eco impact calculated from the bike's real total distance ── */
+  const bikeIri = `/api/bikes/${bike.id}`;
+  const bikeTires  = userTires.filter(t => t.bike === bikeIri && t.removedAtKm == null && !t.retiredAt);
+  const frontTire  = bikeTires.find(t => t.position === 'front');
+  const rearTire   = bikeTires.find(t => t.position === 'rear');
+
   const ecoImpact = {
     co2SavedKg:      Math.round(bike.totalDistance * 0.21 * 10) / 10,
     caloriesBurned:  Math.round(bike.totalDistance * 35),
@@ -226,18 +582,41 @@ export default function MonVeloPage() {
     moneySaved:      Math.round(bike.totalDistance * 0.15),
   };
 
+  async function handleSaveTire(formData: TireFormData) {
+    if (!token || !tireForm) return;
+    const patchPayload: UserTirePayload = {
+      customName: formData.customName || null,
+      installedAtKm: formData.installedAtKm,
+      expectedLifespanKm: formData.expectedLifespanKm > 0 ? formData.expectedLifespanKm : null,
+      tireModel: formData.tireModelId ? `/api/tires/${formData.tireModelId}` : null,
+    };
+    await patchUserTire(tireForm.id, patchPayload, token);
+    setTireForm(null);
+    await refreshTires();
+  }
+
+  async function handleUninstallTire(tire: ApiUserTire) {
+    if (!token) return;
+    await patchUserTire(tire.id, {
+      bike: null, position: null, removedAtKm: bike.totalDistance,
+    }, token);
+    await refreshTires();
+  }
+
+  async function handleDeleteTire() {
+    if (!token || !deletingTire) return;
+    await destroyUserTire(deletingTire.id, token);
+    setDeletingTire(null);
+    await refreshTires();
+  }
+
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* ── Bike selector row ── */}
       <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1">
         {bikes.map(b => (
-          <BikePill
-            key={b.id}
-            bike={b}
-            active={b.id === activeBikeId}
-            onClick={() => setActiveBikeId(b.id)}
-          />
+          <BikePill key={b.id} bike={b} active={b.id === activeBikeId} onClick={() => setActiveBikeId(b.id)} />
         ))}
         <button
           onClick={() => setShowAddForm(true)}
@@ -366,39 +745,68 @@ export default function MonVeloPage() {
 
       {/* ── Tires ── */}
       <div className="mt-4">
-        <h2 className="font-title text-[#000c34] text-lg mb-3 flex items-center gap-2">
-          <span className="w-6 h-6 bg-[#000c34] rounded-lg flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
-              <ellipse cx="12" cy="12" rx="4" ry="10" />
-              <ellipse cx="12" cy="12" rx="10" ry="4" />
-            </svg>
-          </span>
-          Pneus actuels
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-title text-[#000c34] text-lg flex items-center gap-2">
+            <span className="w-6 h-6 bg-[#000c34] rounded-lg flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                <ellipse cx="12" cy="12" rx="4" ry="10" />
+                <ellipse cx="12" cy="12" rx="10" ry="4" />
+              </svg>
+            </span>
+            Pneus actuels
+          </h2>
+          <div className="flex items-center gap-2">
+            {!tiresLoaded && (
+              <span className="w-4 h-4 border-2 border-gray-200 border-t-[#27509b] rounded-full animate-spin" />
+            )}
+            <button
+              onClick={() => setGarage('browse')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-[#000c34] text-xs font-black rounded-xl hover:border-[#27509b] hover:text-[#27509b] transition-all shadow-sm"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11" />
+              </svg>
+              Mon Garage
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TireCard tire={TIRE_FRONT} />
-          <TireCard tire={TIRE_REAR} />
+          {/* AVANT */}
+          {frontTire ? (
+            <TireCard
+              tire={frontTire}
+              bikeKm={bike.totalDistance}
+              onEdit={() => setTireForm(frontTire)}
+              onUninstall={() => handleUninstallTire(frontTire)}
+              onDelete={() => setDeletingTire(frontTire)}
+            />
+          ) : (
+            <TireSlotEmpty position="front" onChoose={() => setGarage({
+              bikeId: bike.id, bikeName: bike.name,
+              position: 'front', bikeKm: bike.totalDistance,
+            })} />
+          )}
+          {/* ARRIÈRE */}
+          {rearTire ? (
+            <TireCard
+              tire={rearTire}
+              bikeKm={bike.totalDistance}
+              onEdit={() => setTireForm(rearTire)}
+              onUninstall={() => handleUninstallTire(rearTire)}
+              onDelete={() => setDeletingTire(rearTire)}
+            />
+          ) : (
+            <TireSlotEmpty position="rear" onChoose={() => setGarage({
+              bikeId: bike.id, bikeName: bike.name,
+              position: 'rear', bikeKm: bike.totalDistance,
+            })} />
+          )}
         </div>
       </div>
 
-      {/* ── TireRating + Ambition 2050 ── */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="font-title text-[#000c34] text-base">Performances Pneu</span>
-            <span className="text-gray-300 text-xs">TireRating</span>
-          </div>
-          <div className="space-y-3.5">
-            <RatingBar label="Efficacité de roulement" value={TIRE_RATING.rollingEfficiency} />
-            <RatingBar label="Résistance crevaison"    value={TIRE_RATING.punctureResistance} />
-            <RatingBar label="Adhérence (grip)"        value={TIRE_RATING.grip} />
-            <RatingBar label="Durabilité"              value={TIRE_RATING.durability} />
-          </div>
-          <p className="text-gray-300 text-[10px] mt-4 italic">
-            Scores Michelin — basés sur tests laboratoire &amp; terrain.
-          </p>
-        </div>
-
+      {/* ── Ambition 2050 ── */}
+      <div className="mt-4">
         <div className="bg-[#000c34] rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="bg-[#fce500] text-[#000c34] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">
@@ -429,6 +837,7 @@ export default function MonVeloPage() {
         </div>
       </div>
 
+      {/* ── Bike modals ── */}
       {showAddForm && (
         <BikeForm
           onSave={async (data) => { await addBike(data); setShowAddForm(false); }}
@@ -436,7 +845,6 @@ export default function MonVeloPage() {
           asModal
         />
       )}
-
       {editingBike && (
         <BikeForm
           bike={editingBike}
@@ -445,14 +853,45 @@ export default function MonVeloPage() {
           asModal
         />
       )}
-
       {deletingBike && (
-        <DeleteConfirm
+        <DeleteBikeConfirm
           bike={deletingBike}
           onConfirm={async () => { await deleteBike(deletingBike.id); setDeletingBike(null); }}
           onCancel={() => setDeletingBike(null)}
         />
       )}
+
+      {/* ── Tire modals ── */}
+      {tireForm && (
+        <TireFormModal
+          position={tireForm.position ?? 'front'}
+          existingTire={tireForm}
+          bikeKm={bike.totalDistance}
+          catalog={tireCatalog}
+          onSave={handleSaveTire}
+          onClose={() => setTireForm(null)}
+        />
+      )}
+      {deletingTire && (
+        <DeleteTireConfirm
+          tire={deletingTire}
+          onConfirm={handleDeleteTire}
+          onCancel={() => setDeletingTire(null)}
+        />
+      )}
+
+      {/* ── Garage drawer ── */}
+      {garage && token && (
+        <GarageDrawer
+          userTires={userTires}
+          bikes={bikes}
+          token={token}
+          onRefresh={refreshTires}
+          onClose={() => setGarage(null)}
+          assignMode={garage === 'browse' ? undefined : garage}
+        />
+      )}
+
     </div>
   );
 }

@@ -7,6 +7,7 @@ use App\Entity\Gum;
 use App\Entity\Tire;
 use App\Entity\TireLine;
 use App\Entity\User;
+use App\Entity\UserTire;
 use App\Enum\BikeType;
 use App\Enum\TireBead;
 use App\Enum\TireFitting;
@@ -23,72 +24,72 @@ class BikeAndTireFixtures extends Fixture implements OrderedFixtureInterface
      *              sealing, bead, fitting, min_bar, max_bar, terrain, use, gum_ref|null]
      */
     private const ROAD_TIRES = [
-        ['MICHELIN POWER TIME TRIAL RACING LINE',           '664143', 23, 700, '3X150', 180,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
-        ['MICHELIN POWER CUP S RACING LINE',                '531838', 28, 700, '3X120', 290,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 7.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
-        ['MICHELIN POWER GRAVEL RS RACING LINE',            '564848', 42, 700, '3X120', 445,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 4.5,  'ASPHALT,OFFROAD HARD PACKED',                 'RACING,E-GRAVEL',     GumFixtures::GUM_X],
-        ['MICHELIN POWER PROTECTION TLR COMPETITION LINE',  '074960', 28, 700, '3X120', 315,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 4.0,  6.0,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::MAGI_X],
-        ['MICHELIN POWER ALL SEASON COMPETITION LINE',      '146404', 25, 700, '3X55',  270,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  7.5,  'ASPHALT',                                     'ALL ROAD',            GumFixtures::MAGI_X],
-        ['MICHELIN POWER ADVENTURE COMPETITION LINE',       '621328', 48, 650, '3X100', 510,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 2.5,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'SPEED,TOURING',       GumFixtures::GUM_X],
-        ['MICHELIN POWER GRAVEL COMPETITION LINE',          '188365', 50, 650, '3X120', 580,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 2.5,  4.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-GRAVEL',   GumFixtures::MAGI_X],
-        ['MICHELIN POWER GRAVEL EXTREME COMPETITION LINE',  '216772', 42, 700, '3X120', 570,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 4.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TRAIL,E-GRAVEL',      GumFixtures::GUM_X],
-        ['MICHELIN POWER ROAD COMPETITION LINE',            '017605', 25, 700, '3X120', 235,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  8.0,  'ASPHALT',                                     'RACING',              null],
-        ['MICHELIN POWER ROAD TLR COMPETITION LINE',        '876172', 25, 700, '4X120', 275,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  8.0,  'ASPHALT',                                     'RACING',              null],
-        ['MICHELIN POWER CUP COMPETITION LINE',             '668854', 23, 700, '3X120', 205,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 6.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
-        ['MICHELIN POWER CUP TLR COMPETITION LINE',         '176421', 25, 700, '3X120', 260,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
-        ['MICHELIN PRO5 TLR COMPETITION LINE',              '139901', 28, 700, '3X120', 310,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 7.0,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::GUM_X],
-        ['MICHELIN PRO5 COMPETITION LINE',                  '478236', 25, 700, '3X110', 245,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 5.0,  7.5,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::GUM_X],
-        ['MICHELIN POWER CYCLOCROSS JET COMPETITION LINE',  '762322', 33, 700, '3X120', 390,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 3.0,  5.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'CYCLOCROSS',          GumFixtures::MAGI_X],
-        ['MICHELIN POWER CYCLOCROSS MUD COMPETITION LINE',  '818285', 33, 700, '3X120', 390,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 3.0,  5.0,  'OFFROAD MIXED,OFFROAD SOFT,OFFROAD MUD',      'CYCLOCROSS',          GumFixtures::MAGI_X],
-        ['MICHELIN LITHION 2 PERFORMANCE LINE',             '439162', 23, 700, '3X55',  220,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 6.0,  8.0,  'ASPHALT',                                     'ENDURANCE',           null],
-        ['MICHELIN LITHION 4 PERFORMANCE LINE',             '303721', 23, 700, '3X55',  240,  TireSealing::TUBE_TYPE,      TireBead::FOLDABLE, TireFitting::FRONT_REAR, 6.0,  8.0,  'ASPHALT',                                     'ENDURANCE,E-ROAD',    GumFixtures::MAGI_X],
-        ['MICHELIN DYNAMIC CLASSIC ACCESS LINE',            '984157', 20, 700, '3X30',  275,  TireSealing::TUBE_TYPE,      TireBead::WIRE,     TireFitting::FRONT_REAR, 6.0,  8.0,  'ASPHALT',                                     'LEISURE',             null],
-        ['MICHELIN DYNAMIC SPORT ACCESS LINE',              '002895', 23, 700, '3X30',  315,  TireSealing::TUBE_TYPE,      TireBead::WIRE,     TireFitting::FRONT_REAR, 6.0,  8.0,  'ASPHALT',                                     'LEISURE',             null],
+        ['MICHELIN POWER TIME TRIAL RACING LINE',           '664143', 23, 700, '3X150', 180,  null, null, null, 5.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
+        ['MICHELIN POWER CUP S RACING LINE',                '531838', 28, 700, '3X120', 290,  null, null, null, null, 7.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
+        ['MICHELIN POWER GRAVEL RS RACING LINE',            '564848', 42, 700, '3X120', 445,  null, null, null, null, 4.5,  'ASPHALT,OFFROAD HARD PACKED',                 'RACING,E-GRAVEL',     GumFixtures::GUM_X],
+        ['MICHELIN POWER PROTECTION TLR COMPETITION LINE',  '074960', 28, 700, '3X120', 315,  null, null, null, 4.0,  6.0,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::MAGI_X],
+        ['MICHELIN POWER ALL SEASON COMPETITION LINE',      '146404', 25, 700, '3X55',  270,  null, null, null, 5.0,  7.5,  'ASPHALT',                                     'ALL ROAD',            GumFixtures::MAGI_X],
+        ['MICHELIN POWER ADVENTURE COMPETITION LINE',       '621328', 48, 650, '3X100', 510,  null, null, null, 2.5,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'SPEED,TOURING',       GumFixtures::GUM_X],
+        ['MICHELIN POWER GRAVEL COMPETITION LINE',          '188365', 50, 650, '3X120', 580,  null, null, null, 2.5,  4.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-GRAVEL',   GumFixtures::MAGI_X],
+        ['MICHELIN POWER GRAVEL EXTREME COMPETITION LINE',  '216772', 42, 700, '3X120', 570,  null, null, null, null, 4.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TRAIL,E-GRAVEL',      GumFixtures::GUM_X],
+        ['MICHELIN POWER ROAD COMPETITION LINE',            '017605', 25, 700, '3X120', 235,  null, null, null, 5.0,  8.0,  'ASPHALT',                                     'RACING',              null],
+        ['MICHELIN POWER ROAD TLR COMPETITION LINE',        '876172', 25, 700, '4X120', 275,  null, null, null, 5.0,  8.0,  'ASPHALT',                                     'RACING',              null],
+        ['MICHELIN POWER CUP COMPETITION LINE',             '668854', 23, 700, '3X120', 205,  null, null, null, 6.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
+        ['MICHELIN POWER CUP TLR COMPETITION LINE',         '176421', 25, 700, '3X120', 260,  null, null, null, 5.0,  8.0,  'ASPHALT',                                     'RACING',              GumFixtures::GUM_X],
+        ['MICHELIN PRO5 TLR COMPETITION LINE',              '139901', 28, 700, '3X120', 310,  null, null, null, null, 7.0,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::GUM_X],
+        ['MICHELIN PRO5 COMPETITION LINE',                  '478236', 25, 700, '3X110', 245,  null, null, null, 5.0,  7.5,  'ASPHALT',                                     'ENDURANCE',           GumFixtures::GUM_X],
+        ['MICHELIN POWER CYCLOCROSS JET COMPETITION LINE',  '762322', 33, 700, '3X120', 390,  null, null, null, 3.0,  5.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'CYCLOCROSS',          GumFixtures::MAGI_X],
+        ['MICHELIN POWER CYCLOCROSS MUD COMPETITION LINE',  '818285', 33, 700, '3X120', 390,  null, null, null, 3.0,  5.0,  'OFFROAD MIXED,OFFROAD SOFT,OFFROAD MUD',      'CYCLOCROSS',          GumFixtures::MAGI_X],
+        ['MICHELIN LITHION 2 PERFORMANCE LINE',             '439162', 23, 700, '3X55',  220,  null, null, null, 6.0,  8.0,  'ASPHALT',                                     'ENDURANCE',           null],
+        ['MICHELIN LITHION 4 PERFORMANCE LINE',             '303721', 23, 700, '3X55',  240,  null, null, null, 6.0,  8.0,  'ASPHALT',                                     'ENDURANCE,E-ROAD',    GumFixtures::MAGI_X],
+        ['MICHELIN DYNAMIC CLASSIC ACCESS LINE',            '984157', 20, 700, '3X30',  275,  null, null, null, 6.0,  8.0,  'ASPHALT',                                     'LEISURE',             null],
+        ['MICHELIN DYNAMIC SPORT ACCESS LINE',              '002895', 23, 700, '3X30',  315,  null, null, null, 6.0,  8.0,  'ASPHALT',                                     'LEISURE',             null],
     ];
 
     private const MTB_TIRES = [
-        ['MICHELIN WILD ENDURO FRONT RACING LINE',        '475741', 61, 622, '2X55',     1400, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT,      1.5,  4.0,  'OFFROAD MIXED',                               'ENDURO',              null],
-        ['MICHELIN WILD ENDURO REAR RACING LINE',         '661840', 61, 622, '2X55',     1350, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::REAR,       1.8,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'ENDURO',              GumFixtures::MAGI_X],
-        ['MICHELIN WILD ENDURO MH RACING LINE',           '699740', 63, 584, '2X55',     1295, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.5,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'ENDURO',              GumFixtures::MAGI_X],
-        ['MICHELIN WILD ENDURO MS RACING LINE',           '737025', 61, 584, '2X55',     1235, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.5,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'ENDURO',              GumFixtures::MAGI_X],
-        ['MICHELIN DH16 RACING LINE',                     '372839', 61, 584, '1X55/1X120', 1280, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 4.0, 'OFFROAD HARD PACKED,OFFROAD MIXED',          'DOWNHILL',            GumFixtures::MAGI_X],
-        ['MICHELIN DH22 RACING LINE',                     '623988', 61, 584, '4X55',     1440, TireSealing::TUBELESS_READY, TireBead::WIRE,     TireFitting::FRONT_REAR, 1.5,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'DOWNHILL',            GumFixtures::MAGI_X],
-        ['MICHELIN DH22 RACING LINE (FOLDABLE BEAD)',     '512508', 61, 584, '1X55/1X120', 1260, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 4.0, 'OFFROAD MIXED,OFFROAD SOFT',                 'DOWNHILL',            GumFixtures::MAGI_X],
-        ['MICHELIN DH34 RACING LINE',                     '897304', 61, 559, '2X55',     1340, TireSealing::TUBELESS_READY, TireBead::WIRE,     TireFitting::FRONT_REAR, 1.5,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'DOWNHILL',            GumFixtures::MAGI_X],
-        ['MICHELIN DH MUD RACING LINE',                   '570539', 61, 584, '4X55',     1420, TireSealing::TUBELESS_READY, TireBead::WIRE,     TireFitting::FRONT_REAR, 1.8,  4.0,  'SOFT,MUD',                                    'DOWNHILL',            GumFixtures::MAGI_X],
-        ['MICHELIN PILOT SX SLICK RACING LINE',           '490631', 44, 406, '4X120',    420,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 2.0,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'BMX RACING',          null],
-        ['MICHELIN PILOT SX RACING LINE',                 '764428', 37, 451, '3X62',     400,  TireSealing::TUBE_TYPE,      TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  5.0,  'OFFROAD HARD PACKED',                         'BMX RACING',          null],
-        ['MICHELIN PILOT SX RACING LINE (FOLDABLE BEAD)', '240271', 44, 406, '4X120',    400,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 2.0,  5.0,  'OFFROAD HARD PACKED',                         'BMX RACING',          null],
-        ['MICHELIN PILOT FREESTYLE RACING LINE',          '959153', 53, 406, '3X62',     585,  TireSealing::TUBE_TYPE,      TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  7.0,  'ASPHALT,OFFROAD HARD PACKED',                 'BMX FREESTYLE',       GumFixtures::MAGI_X],
-        ['MICHELIN FORCE XC2 RACING LINE',                '489593', 54, 622, '2X150',    680,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.8,  4.0,  'OFFROAD MIXED',                               'CROSS COUNTRY',       GumFixtures::GUM_X],
-        ['MICHELIN JET XC2 RACING LINE',                  '901034', 57, 622, '2X150',    710,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.8,  4.0,  'OFFROAD HARD PACKED',                         'CROSS COUNTRY',       GumFixtures::GUM_X],
-        ['MICHELIN WILD XC RACING LINE',                  '986167', 57, 622, '2X150',    730,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.8,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'CROSS COUNTRY',       GumFixtures::GUM_X],
-        ['MICHELIN E-WILD FRONT RACING LINE',             '445579', 61, 622, '2X55',     1290, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT,      null, 4.0,  'OFFROAD MIXED',                               'E-ENDURO',            GumFixtures::MAGI_X],
-        ['MICHELIN E-WILD REAR RACING LINE',              '090532', 65, 584, '2X55',     1275, TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::REAR,       null, 4.0,  'OFFROAD MIXED',                               'E-ENDURO',            GumFixtures::MAGI_X],
-        ['MICHELIN FORCE XC3 RACING LINE',                '704051', 55, 622, '3X120',    700,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 2.5,  'OFFROAD MIXED',                               'CROSS COUNTRY',       GumFixtures::GUM_X],
-        ['MICHELIN JET XC3 RACING LINE',                  '275343', 55, 622, '3X120',    680,  TireSealing::TUBELESS_READY, TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 2.5,  'OFFROAD HARD PACKED',                         'CROSS COUNTRY',       GumFixtures::GUM_X],
+        ['MICHELIN WILD ENDURO FRONT RACING LINE',        '475741', 61, 622, '2X55',     1400, null, null, null, 1.5,  4.0,  'OFFROAD MIXED',                               'ENDURO',              null],
+        ['MICHELIN WILD ENDURO REAR RACING LINE',         '661840', 61, 622, '2X55',     1350, null, null, null, 1.8,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'ENDURO',              GumFixtures::MAGI_X],
+        ['MICHELIN WILD ENDURO MH RACING LINE',           '699740', 63, 584, '2X55',     1295, null, null, null, 1.5,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'ENDURO',              GumFixtures::MAGI_X],
+        ['MICHELIN WILD ENDURO MS RACING LINE',           '737025', 61, 584, '2X55',     1235, null, null, null, 1.5,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'ENDURO',              GumFixtures::MAGI_X],
+        ['MICHELIN DH16 RACING LINE',                     '372839', 61, 584, '1X55/1X120', 1280, null, null, null, null, 4.0, 'OFFROAD HARD PACKED,OFFROAD MIXED',          'DOWNHILL',            GumFixtures::MAGI_X],
+        ['MICHELIN DH22 RACING LINE',                     '623988', 61, 584, '4X55',     1440, null, null, null, 1.5,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'DOWNHILL',            GumFixtures::MAGI_X],
+        ['MICHELIN DH22 RACING LINE (FOLDABLE BEAD)',     '512508', 61, 584, '1X55/1X120', 1260, null, null, null, null, 4.0, 'OFFROAD MIXED,OFFROAD SOFT',                 'DOWNHILL',            GumFixtures::MAGI_X],
+        ['MICHELIN DH34 RACING LINE',                     '897304', 61, 559, '2X55',     1340, null, null, null, 1.5,  4.0,  'OFFROAD HARD PACKED,OFFROAD MIXED',           'DOWNHILL',            GumFixtures::MAGI_X],
+        ['MICHELIN DH MUD RACING LINE',                   '570539', 61, 584, '4X55',     1420, null, null, null, 1.8,  4.0,  'SOFT,MUD',                                    'DOWNHILL',            GumFixtures::MAGI_X],
+        ['MICHELIN PILOT SX SLICK RACING LINE',           '490631', 44, 406, '4X120',    420,  null, null, null, 2.0,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'BMX RACING',          null],
+        ['MICHELIN PILOT SX RACING LINE',                 '764428', 37, 451, '3X62',     400,  null, null, null, 2.5,  5.0,  'OFFROAD HARD PACKED',                         'BMX RACING',          null],
+        ['MICHELIN PILOT SX RACING LINE (FOLDABLE BEAD)', '240271', 44, 406, '4X120',    400,  null, null, null, 2.0,  5.0,  'OFFROAD HARD PACKED',                         'BMX RACING',          null],
+        ['MICHELIN PILOT FREESTYLE RACING LINE',          '959153', 53, 406, '3X62',     585,  null, null, null, 2.5,  7.0,  'ASPHALT,OFFROAD HARD PACKED',                 'BMX FREESTYLE',       GumFixtures::MAGI_X],
+        ['MICHELIN FORCE XC2 RACING LINE',                '489593', 54, 622, '2X150',    680,  null, null, null, 1.8,  4.0,  'OFFROAD MIXED',                               'CROSS COUNTRY',       GumFixtures::GUM_X],
+        ['MICHELIN JET XC2 RACING LINE',                  '901034', 57, 622, '2X150',    710,  null, null, null, 1.8,  4.0,  'OFFROAD HARD PACKED',                         'CROSS COUNTRY',       GumFixtures::GUM_X],
+        ['MICHELIN WILD XC RACING LINE',                  '986167', 57, 622, '2X150',    730,  null, null, null, 1.8,  4.0,  'OFFROAD MIXED,OFFROAD SOFT',                  'CROSS COUNTRY',       GumFixtures::GUM_X],
+        ['MICHELIN E-WILD FRONT RACING LINE',             '445579', 61, 622, '2X55',     1290, null, null, null, null, 4.0,  'OFFROAD MIXED',                               'E-ENDURO',            GumFixtures::MAGI_X],
+        ['MICHELIN E-WILD REAR RACING LINE',              '090532', 65, 584, '2X55',     1275, null, null, null, null, 4.0,  'OFFROAD MIXED',                               'E-ENDURO',            GumFixtures::MAGI_X],
+        ['MICHELIN FORCE XC3 RACING LINE',                '704051', 55, 622, '3X120',    700,  null, null, null, null, 2.5,  'OFFROAD MIXED',                               'CROSS COUNTRY',       GumFixtures::GUM_X],
+        ['MICHELIN JET XC3 RACING LINE',                  '275343', 55, 622, '3X120',    680,  null, null, null, null, 2.5,  'OFFROAD HARD PACKED',                         'CROSS COUNTRY',       GumFixtures::GUM_X],
     ];
 
     private const CITY_TIRES = [
-        ['MICHELIN STARGRIP COMPETITION LINE',                    '240902', 37, 700, '3X30',  680,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 3.0,  6.0,  'ASPHALT',                                     'URBAN',               null],
-        ['MICHELIN CITY CARGO COMPETITION LINE',                  '349512', 55, 406, '6X62',  900,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 1.8,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
-        ['MICHELIN CITY STREET COMPETITION LINE (FOLDABLE BEAD)', '228339', 55, 584, '3X62',  795,  TireSealing::TUBE_TYPE,  TireBead::FOLDABLE, TireFitting::FRONT_REAR, 2.0,  4.5,  'ASPHALT',                                     'URBAN,E-CITY',        GumFixtures::MAGI_X],
-        ['MICHELIN CITY TOURING COMPETITION LINE (FB)',           '684544', 55, 584, '3X62',  900,  TireSealing::TUBE_TYPE,  TireBead::FOLDABLE, TireFitting::FRONT_REAR, 1.8,  4.5,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING,E-CITY',      GumFixtures::MAGI_X],
-        ['MICHELIN CITY TREKKING COMPETITION LINE (FB)',          '899445', 60, 584, '3X62',  970,  TireSealing::TUBE_TYPE,  TireBead::FOLDABLE, TireFitting::FRONT_REAR, null, 3.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-CITY',     GumFixtures::MAGI_X],
-        ['MICHELIN CITY STREET PERFORMANCE LINE',                 '793238', 40, 559, '3X62',  630,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT',                                     'URBAN,E-CITY',        GumFixtures::MAGI_X],
-        ['MICHELIN CITY TOURING PERFORMANCE LINE',                '921369', 35, 349, '3X62',  370,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, null, 7.5,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING,E-CITY',      GumFixtures::MAGI_X],
-        ['MICHELIN CITY TREKKING PERFORMANCE LINE',               '566448', 60, 584, '3X62', 1140,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, null, 3.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-CITY',     GumFixtures::MAGI_X],
-        ['MICHELIN PROTEK CROSS MAX PERFORMANCE LINE',            '127653', 40, 559, '3X30',  980,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING',            null],
-        ['MICHELIN PROTEK MAX PERFORMANCE LINE',                  '415865', 37, 406, '3X30',  625,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING',             null],
-        ['MICHELIN WILD RUN\'R PERFORMANCE LINE',                 '605619', 35, 559, '3X33',  420,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT',                                     'URBAN',               null],
-        ['MICHELIN COUNTRY J ACCESS LINE',                        '697424', 44, 305, '3X22',  440,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.0,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'KIDS',                null],
-        ['MICHELIN PROTEK ACCESS LINE',                           '014873', 37, 406, '3X22',  560,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING',             null],
-        ['MICHELIN PROTEK CROSS ACCESS LINE',                     '892908', 40, 559, '3X22',  765,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING',            null],
-        ['MICHELIN CITY J ACCESS LINE',                           '001663', 47, 203, '3X22',  290,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.0,  4.0,  'ASPHALT',                                     'KIDS',                null],
-        ['MICHELIN WORLDTOUR ACCESS LINE',                        '124619', 35, 584, '3X22',  560,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT',                                     'TOURING',             null],
-        ['MICHELIN ZZ ACCESS LINE',                               '404313', 44, 584, '3X22',  605,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.5,  6.0,  'ASPHALT',                                     'TOURING',             null],
-        ['MICHELIN COUNTRY ROCK ACCESS LINE',                     '966280', 44, 559, '3X30',  610,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.0,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TREKKING',            null],
-        ['MICHELIN CITY CARGO COMPETITION LINE',                  '665728', 60, 406, '6X62',  920,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 2.0,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
-        ['MICHELIN CITY CARGO COMPETITION LINE',                  '470331', 55, 507, '6X62', 1100,  TireSealing::TUBE_TYPE,  TireBead::WIRE,     TireFitting::FRONT_REAR, 1.8,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
+        ['MICHELIN STARGRIP COMPETITION LINE',                    '240902', 37, 700, '3X30',  680,  null, null, null, 3.0,  6.0,  'ASPHALT',                                     'URBAN',               null],
+        ['MICHELIN CITY CARGO COMPETITION LINE',                  '349512', 55, 406, '6X62',  900,  null, null, null, 1.8,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
+        ['MICHELIN CITY STREET COMPETITION LINE (FOLDABLE BEAD)', '228339', 55, 584, '3X62',  795,  null, null, null, 2.0,  4.5,  'ASPHALT',                                     'URBAN,E-CITY',        GumFixtures::MAGI_X],
+        ['MICHELIN CITY TOURING COMPETITION LINE (FB)',           '684544', 55, 584, '3X62',  900,  null, null, null, 1.8,  4.5,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING,E-CITY',      GumFixtures::MAGI_X],
+        ['MICHELIN CITY TREKKING COMPETITION LINE (FB)',          '899445', 60, 584, '3X62',  970,  null, null, null, null, 3.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-CITY',     GumFixtures::MAGI_X],
+        ['MICHELIN CITY STREET PERFORMANCE LINE',                 '793238', 40, 559, '3X62',  630,  null, null, null, 2.5,  6.0,  'ASPHALT',                                     'URBAN,E-CITY',        GumFixtures::MAGI_X],
+        ['MICHELIN CITY TOURING PERFORMANCE LINE',                '921369', 35, 349, '3X62',  370,  null, null, null, null, 7.5,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING,E-CITY',      GumFixtures::MAGI_X],
+        ['MICHELIN CITY TREKKING PERFORMANCE LINE',               '566448', 60, 584, '3X62', 1140,  null, null, null, null, 3.5,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING,E-CITY',     GumFixtures::MAGI_X],
+        ['MICHELIN PROTEK CROSS MAX PERFORMANCE LINE',            '127653', 40, 559, '3X30',  980,  null, null, null, 2.5,  6.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING',            null],
+        ['MICHELIN PROTEK MAX PERFORMANCE LINE',                  '415865', 37, 406, '3X30',  625,  null, null, null, 2.5,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING',             null],
+        ['MICHELIN WILD RUN\'R PERFORMANCE LINE',                 '605619', 35, 559, '3X33',  420,  null, null, null, 2.5,  6.0,  'ASPHALT',                                     'URBAN',               null],
+        ['MICHELIN COUNTRY J ACCESS LINE',                        '697424', 44, 305, '3X22',  440,  null, null, null, 2.0,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'KIDS',                null],
+        ['MICHELIN PROTEK ACCESS LINE',                           '014873', 37, 406, '3X22',  560,  null, null, null, 2.5,  5.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TOURING',             null],
+        ['MICHELIN PROTEK CROSS ACCESS LINE',                     '892908', 40, 559, '3X22',  765,  null, null, null, 2.5,  6.0,  'ASPHALT,OFFROAD HARD PACKED,OFFROAD MIXED',   'TREKKING',            null],
+        ['MICHELIN CITY J ACCESS LINE',                           '001663', 47, 203, '3X22',  290,  null, null, null, 2.0,  4.0,  'ASPHALT',                                     'KIDS',                null],
+        ['MICHELIN WORLDTOUR ACCESS LINE',                        '124619', 35, 584, '3X22',  560,  null, null, null, 2.5,  6.0,  'ASPHALT',                                     'TOURING',             null],
+        ['MICHELIN ZZ ACCESS LINE',                               '404313', 44, 584, '3X22',  605,  null, null, null, 2.5,  6.0,  'ASPHALT',                                     'TOURING',             null],
+        ['MICHELIN COUNTRY ROCK ACCESS LINE',                     '966280', 44, 559, '3X30',  610,  null, null, null, 2.0,  4.0,  'ASPHALT,OFFROAD HARD PACKED',                 'TREKKING',            null],
+        ['MICHELIN CITY CARGO COMPETITION LINE',                  '665728', 60, 406, '6X62',  920,  null, null, null, 2.0,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
+        ['MICHELIN CITY CARGO COMPETITION LINE',                  '470331', 55, 507, '6X62', 1100,  null, null, null, 1.8,  5.0,  'ASPHALT',                                     'CARGO,URBAN',         GumFixtures::MAGI_X],
     ];
 
     private const ROAD_BIKES = [
@@ -139,21 +140,67 @@ class BikeAndTireFixtures extends Fixture implements OrderedFixtureInterface
             return;
         }
 
-        $this->loadBikeGroup($manager, self::ROAD_BIKES,  self::ROAD_TIRES,  $users, $userCount);
-        $this->loadBikeGroup($manager, self::MTB_BIKES,   self::MTB_TIRES,   $users, $userCount);
-        $this->loadBikeGroup($manager, self::CITY_BIKES,  self::CITY_TIRES,  $users, $userCount);
+        $catalog = $this->createTireCatalog($manager);
+
+        $this->loadBikeGroup($manager, self::ROAD_BIKES,  self::ROAD_TIRES,  $users, $userCount, $catalog);
+        $this->loadBikeGroup($manager, self::MTB_BIKES,   self::MTB_TIRES,   $users, $userCount, $catalog);
+        $this->loadBikeGroup($manager, self::CITY_BIKES,  self::CITY_TIRES,  $users, $userCount, $catalog);
 
         $manager->flush();
     }
 
+    /** @return array<string, Tire> keyed by "{lineName}_{cai}" */
+    private function createTireCatalog(ObjectManager $manager): array
+    {
+        $catalog = [];
+        foreach ([self::ROAD_TIRES, self::MTB_TIRES, self::CITY_TIRES] as $group) {
+            foreach ($group as $data) {
+                [$lineName, $cai, $sectionWidth, $outerDiameter, $tpi, $weight, , , , $minBar, $maxBar, $terrainTypes] = $data;
+                $gumRef = $data[13] ?? null;
+
+                $beadDiameter = match((int)$outerDiameter) { 700 => 622, 650 => 584, default => (int)$outerDiameter };
+
+                /** @var TireLine $tireLine */
+                $tireLine = $this->getReference(TireLineFixtures::PREFIX . $lineName, TireLine::class);
+                $gum = $gumRef ? $this->getReference($gumRef, Gum::class) : null;
+
+                $tire = (new Tire())
+                    ->setCai($cai)
+                    ->setBrand('Michelin')
+                    ->setModel($lineName)
+                    ->setFitting(TireFitting::FRONT_REAR)
+                    ->setSealing(TireSealing::TUBELESS_READY)
+                    ->setBead(TireBead::FOLDABLE)
+                    ->setOuterDiameter((int)$outerDiameter)
+                    ->setSectionWidth((int)$sectionWidth)
+                    ->setEtrto(sprintf('%d-%d', $sectionWidth, $beadDiameter))
+                    ->setTpi((string)$tpi)
+                    ->setWeight((int)$weight)
+                    ->setMinPressureBar($minBar)
+                    ->setMaxPressureBar($maxBar)
+                    ->setTerrainTypes($terrainTypes)
+                    ->setTireLine($tireLine)
+                    ->setGum($gum);
+
+                $manager->persist($tire);
+                $catalog[$lineName . '_' . $cai] = $tire;
+            }
+        }
+        return $catalog;
+    }
+
+    /** @param array<string, Tire> $catalog */
     private function loadBikeGroup(
         ObjectManager $manager,
         array $bikeSpecs,
         array $tireData,
         array $users,
         int $userCount,
+        array $catalog,
     ): void {
         foreach ($bikeSpecs as $i => [$name, $brand, $model, $bikeType, $weight, $purchaseDateStr, $totalDistance]) {
+            $owner = $users[$i % $userCount];
+
             $bike = (new Bike())
                 ->setName($name)
                 ->setBrand($brand)
@@ -162,57 +209,32 @@ class BikeAndTireFixtures extends Fixture implements OrderedFixtureInterface
                 ->setWeight($weight)
                 ->setPurchaseDate(new \DateTimeImmutable($purchaseDateStr))
                 ->setTotalDistance($totalDistance)
-                ->setOwner($users[$i % $userCount]);
+                ->setOwner($owner);
 
             $manager->persist($bike);
 
-            // Each bike gets 2 tires (front + rear) from paired entries
             $frontIndex = ($i * 2) % count($tireData);
             $rearIndex  = ($i * 2 + 1) % count($tireData);
 
-            $manager->persist($this->makeTire($tireData[$frontIndex], TirePosition::FRONT, $bike));
-            $manager->persist($this->makeTire($tireData[$rearIndex],  TirePosition::REAR,  $bike));
+            $manager->persist($this->makeUserTire($tireData[$frontIndex], TirePosition::FRONT, $bike, $owner, $catalog));
+            $manager->persist($this->makeUserTire($tireData[$rearIndex],  TirePosition::REAR,  $bike, $owner, $catalog));
         }
     }
 
-    /**
-     * @param array{0:string,1:string,2:int,3:int,4:string,5:int,6:TireSealing,7:TireBead,8:TireFitting,9:float|null,10:float|null,11:string,12:string,13:string|null} $data
-     */
-    private function makeTire(array $data, TirePosition $position, Bike $bike): Tire
+    /** @param array<string, Tire> $catalog */
+    private function makeUserTire(array $data, TirePosition $position, Bike $bike, User $owner, array $catalog): UserTire
     {
-        [$lineName, $cai, $sectionWidth, $outerDiameter, $tpi, $weight,
-         $sealing, $bead, $fitting, $minBar, $maxBar, $terrain, $use, $gumRef] = $data;
+        [$lineName, $cai] = $data;
+        $tireModel = $catalog[$lineName . '_' . $cai] ?? null;
 
-        /** @var TireLine $tireLine */
-        $tireLine = $this->getReference(TireLineFixtures::PREFIX . $lineName, TireLine::class);
-
-        $gum = $gumRef !== null
-            ? $this->getReference($gumRef, Gum::class)
-            : null;
-
-        $etrto = $sectionWidth . '-' . $outerDiameter;
-
-        return (new Tire())
+        return (new UserTire())
             ->setBike($bike)
-            ->setCai($cai)
-            ->setBrand('MICHELIN')
-            ->setModel($lineName)
+            ->setOwner($owner)
             ->setPosition($position)
-            ->setFitting($fitting)
-            ->setSealing($sealing)
-            ->setBead($bead)
-            ->setSectionWidth($sectionWidth)
-            ->setOuterDiameter($outerDiameter)
-            ->setEtrto($etrto)
-            ->setTpi($tpi)
-            ->setWeight($weight)
-            ->setMinPressureBar($minBar)
-            ->setMaxPressureBar($maxBar)
-            ->setTerrainTypes($terrain ?: null)
             ->setInstalledAtKm(0.0)
             ->setExpectedLifespanKm($this->expectedLifespan($lineName))
-            ->setTireLine($tireLine)
-            ->setGum($gum);
+            ->setCustomName($lineName)
+            ->setTireModel($tireModel);
     }
 
     private function expectedLifespan(string $lineName): int
