@@ -23,12 +23,12 @@ WORKDIR /var/www/html
 # Copy project
 COPY . .
 
-# Install dependencies WITHOUT Symfony auto-scripts (IMPORTANT FIX)
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Install dependencies (IMPORTANT: keep scripts ON to avoid API Platform bugs)
+RUN composer install --no-dev --optimize-autoloader
 
-# Ensure cache is clean + warm (fix API Platform crash)
-RUN php bin/console cache:clear --env=prod || true \
-    && php bin/console cache:warmup --env=prod || true
+# Ensure Symfony cache is clean and rebuilt properly
+RUN php bin/console cache:clear --env=prod || true
+RUN php bin/console cache:warmup --env=prod || true
 
 # Render uses dynamic port
 EXPOSE 10000
