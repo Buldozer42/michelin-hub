@@ -29,4 +29,4 @@ RUN php bin/console cache:clear --env=prod || true \
 
 EXPOSE 10000
 
-CMD php -S 0.0.0.0:$PORT -t public
+CMD sh -c 'if [ -n "${DATABASE_URL:-}" ] && echo "$DATABASE_URL" | grep -Eq "(^|[?&])serverVersion=(&|$)"; then export DATABASE_URL="$(echo "$DATABASE_URL" | sed -E "s/([?&])serverVersion=(&|$)/\1/g; s/[?&]$//; s/\?&/\?/")"; fi; php -S 0.0.0.0:${PORT:-10000} -t public'
