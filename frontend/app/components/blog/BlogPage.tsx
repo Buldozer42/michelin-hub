@@ -198,9 +198,10 @@ function SkeletonCard({ featured = false }: { featured?: boolean }) {
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function BlogPage() {
-  const [articles, setArticles]     = useState<ApiArticle[]>([]);
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [articles, setArticles]         = useState<ApiArticle[]>([]);
+  const [categories, setCategories]     = useState<ApiCategory[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([getArticles(), getCategories()])
@@ -209,9 +210,13 @@ export default function BlogPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const featured  = articles[0];
-  const gridItems = articles.slice(1, 4);
-  const sideItem  = articles[4] ?? articles[3] ?? null;
+  const filteredArticles = selectedCategory
+    ? articles.filter(a => a.category.id === selectedCategory)
+    : articles;
+
+  const featured  = filteredArticles[0];
+  const gridItems = filteredArticles.slice(1, 4);
+  const sideItem  = filteredArticles[4] ?? filteredArticles[3] ?? null;
 
   return (
     <div className="bg-white">
@@ -251,13 +256,17 @@ export default function BlogPage() {
       <div className="border-b border-gray-100 bg-white sticky top-[68px] z-30">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 overflow-x-auto py-3 scrollbar-none">
-            <button className="flex-shrink-0 bg-[#000c34] text-white text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase transition-colors ${selectedCategory === null ? "bg-[#000c34] text-white" : "border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b]"}`}
+            >
               Tout
             </button>
             {categories.map(cat => (
               <button
                 key={cat.id}
-                className="flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b] transition-colors"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase transition-colors ${selectedCategory === cat.id ? "bg-[#000c34] text-white border-[#000c34]" : "border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b]"}`}
               >
                 {cat.name}
               </button>
@@ -280,7 +289,9 @@ export default function BlogPage() {
         {/* ── Articles grid ── */}
         <section aria-label="Derniers articles">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-title text-[#000c34] text-2xl">Derniers articles</h2>
+            <h2 className="font-title text-[#000c34] text-2xl">
+              {selectedCategory ? categories.find(c => c.id === selectedCategory)?.name ?? "Derniers articles" : "Derniers articles"}
+            </h2>
             <a href="#" className="text-[#27509b] text-sm font-bold hover:underline inline-flex items-center gap-1">
               Voir tout
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
