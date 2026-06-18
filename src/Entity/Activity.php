@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\ActivityRepository;
+use App\Entity\Bike;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
@@ -91,6 +92,10 @@ class Activity
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;
+
+    #[ORM\ManyToOne(targetEntity: Bike::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Bike $bike = null;
 
     public function getId(): ?int
     {
@@ -321,6 +326,18 @@ class Activity
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getBike(): ?Bike
+    {
+        return $this->bike;
+    }
+
+    public function setBike(?Bike $bike): static
+    {
+        $this->bike = $bike;
 
         return $this;
     }

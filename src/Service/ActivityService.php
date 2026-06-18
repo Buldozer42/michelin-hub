@@ -80,7 +80,16 @@ class ActivityService
 		$this->updateOngoingChallengeParticipations($user, $syncedActivities);
 		$this->entityManager->flush();
 
-		// Return the counts and the activity data
+		// Recalculate totalDistance for each bike based on linked activities
+		$bikes = $user->getBikes()->toArray();
+		if (count($bikes) === 1) {
+			$bike = $bikes[0];
+			$totalM = array_sum(array_map(fn($a) => $a->getDistance() ?? 0.0, $syncedActivities));
+			$bike->setTotalDistance($totalM / 1000.0);
+			$this->entityManager->persist($bike);
+			$this->entityManager->flush();
+		}
+
 		return [
 			'synced' => count($remoteActivities),
 			'created' => count($remoteActivities),
