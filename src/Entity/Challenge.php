@@ -13,6 +13,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\RequestBody;
@@ -21,13 +22,13 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 #[ApiResource(
     operations: [
         new GetCollection(
-            paginationItemsPerPage: 5,
             forceEager: false,
             openapi: new Operation(
                 summary: 'Get the list of challenges'
             )
         ),
         new Get(
+            forceEager: false,
             openapi: new Operation(
                 summary: 'Get a challenge by id'
             )
@@ -44,6 +45,11 @@ use ApiPlatform\OpenApi\Model\RequestBody;
                                 'description' => 'Cumuler 30 km de course sur la semaine',
                                 'startDate' => '2026-07-01T00:00:00+00:00',
                                 'endDate' => '2026-07-07T23:59:59+00:00',
+                                'reward' => [
+                                    'name' => 'Finisher medal',
+                                    'description' => 'Reward for completing the challenge',
+                                    'image' => 'https://example.com/rewards/finisher.png',
+                                ],
                                 'objectives' => [
                                     [
                                         'type' => 'distance',
@@ -58,6 +64,15 @@ use ApiPlatform\OpenApi\Model\RequestBody;
                                     'description' => ['type' => 'string', 'nullable' => true],
                                     'startDate' => ['type' => 'string', 'format' => 'date-time'],
                                     'endDate' => ['type' => 'string', 'format' => 'date-time'],
+                                    'reward' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'name' => ['type' => 'string'],
+                                            'description' => ['type' => 'string', 'nullable' => true],
+                                            'image' => ['type' => 'string', 'nullable' => true],
+                                        ],
+                                        'required' => ['name'],
+                                    ],
                                     'objectives' => [
                                         'type' => 'array',
                                         'items' => [
@@ -93,6 +108,11 @@ use ApiPlatform\OpenApi\Model\RequestBody;
                                 'description' => 'Cumuler 40 km de course sur la semaine',
                                 'startDate' => '2026-07-01T00:00:00+00:00',
                                 'endDate' => '2026-07-07T23:59:59+00:00',
+                                'reward' => [
+                                    'name' => 'Ultra medal',
+                                    'description' => 'Reward for completing the challenge',
+                                    'image' => 'https://example.com/rewards/ultra.png',
+                                ],
                                 'objectives' => [
                                     [
                                         'type' => 'distance',
@@ -107,6 +127,15 @@ use ApiPlatform\OpenApi\Model\RequestBody;
                                     'description' => ['type' => 'string', 'nullable' => true],
                                     'startDate' => ['type' => 'string', 'format' => 'date-time'],
                                     'endDate' => ['type' => 'string', 'format' => 'date-time'],
+                                    'reward' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'name' => ['type' => 'string'],
+                                            'description' => ['type' => 'string', 'nullable' => true],
+                                            'image' => ['type' => 'string', 'nullable' => true],
+                                        ],
+                                        'required' => ['name'],
+                                    ],
                                     'objectives' => [
                                         'type' => 'array',
                                         'items' => [
@@ -128,6 +157,13 @@ use ApiPlatform\OpenApi\Model\RequestBody;
                     ]),
                     required: true,
                 ),
+            )
+        ),
+        new Delete(
+            forceEager: false,
+            security: "is_granted('ROLE_ADMIN') and object.isDeletable()",
+            openapi: new Operation(
+                summary: 'Delete a challenge that has not started yet'
             )
         ),
         new Post(
@@ -189,6 +225,10 @@ class Challenge
      */
     #[ORM\OneToMany(targetEntity: ChallengeParticipation::class, mappedBy: 'challenge', orphanRemoval: true)]
     private Collection $challengeParticipations;
+
+    #[ORM\OneToOne(mappedBy: 'challenge', cascade: ['persist', 'remove'])]
+    #[Groups(['challenge:read', 'challenge:write'])]
+    private ?Reward $reward = null;
 
     public function __construct()
     {
@@ -326,5 +366,32 @@ class Challenge
         }
 
         return $this;
+    }
+
+    public function getReward(): ?Reward
+    {
+        return $this->reward;
+    }
+
+    public function setReward(?Reward $reward): static
+    {
+        // unset the owning side of the relation if necessary
+        if ($reward === null && $this->reward !== null) {
+            $this->reward->setChallenge(null);
+        }
+
+        // set the owning side of the relation if necessary
+        if ($reward !== null && $reward->getChallenge() !== $this) {
+            $reward->setChallenge($this);
+        }
+
+        $this->reward = $reward;
+
+        return $this;
+    }
+
+    public function isDeletable(): bool
+    {
+        return $this->startDate !== null && $this->startDate > new \DateTimeImmutable();
     }
 }

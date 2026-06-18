@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: "/velo",        label: "Mon Vélo",  protected: true },
 ] as const;
 
+const ADMIN_NAV_ITEM = { href: "/edit", label: "Edition" } as const;
+
 function MichelinLogo() {
   return (
     <div className="flex items-center gap-0 shrink-0 select-none">
@@ -39,6 +41,10 @@ export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const isAdmin = user?.roles.includes("ROLE_ADMIN") ?? false;
+  const visibleNavItems = isAdmin
+    ? [...NAV_ITEMS.slice(0, 3), ADMIN_NAV_ITEM, NAV_ITEMS[3]]
+    : NAV_ITEMS;
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -63,7 +69,7 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
-            {NAV_ITEMS.map(({ href, label, ...rest }) => {
+            {visibleNavItems.map(({ href, label, ...rest }) => {
               const locked = "protected" in rest && rest.protected && !user;
               return (
                 <Link
@@ -195,7 +201,7 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white shadow-lg">
           <nav className="max-w-[1280px] mx-auto px-4 py-1" aria-label="Navigation mobile">
-            {NAV_ITEMS.map(({ href, label, ...rest }) => {
+            {visibleNavItems.map(({ href, label, ...rest }) => {
               const locked = "protected" in rest && rest.protected && !user;
               return (
                 <Link

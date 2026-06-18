@@ -5,6 +5,7 @@ namespace App\Tests\Entity;
 use App\Entity\Challenge;
 use App\Entity\ChallengeParticipation;
 use App\Entity\Objective;
+use App\Entity\Reward;
 use App\Enum\ObjectiveType;
 use PHPUnit\Framework\TestCase;
 
@@ -87,5 +88,37 @@ class ChallengeTest extends TestCase
 		$this->assertCount(0, $challenge->getChallengeParticipations());
 		$this->assertFalse($challenge->getChallengeParticipations()->contains($challengeParticipation));
 		$this->assertNull($challengeParticipation->getChallenge());
+	}
+
+	public function testSetRewardKeepsOneToOneAssociationInSync(): void
+	{
+		$challenge = new Challenge();
+		$reward = (new Reward())
+			->setName('Finisher medal')
+			->setDescription('Reward for completing the challenge')
+			->setImage('https://example.com/rewards/finisher.png');
+
+		$challenge->setReward($reward);
+
+		$this->assertSame($reward, $challenge->getReward());
+		$this->assertSame($challenge, $reward->getChallenge());
+
+		$challenge->setReward(null);
+
+		$this->assertNull($challenge->getReward());
+		$this->assertNull($reward->getChallenge());
+	}
+
+	public function testIsDeletableDependsOnFutureStartDate(): void
+	{
+		$challenge = new Challenge();
+
+		$this->assertFalse($challenge->isDeletable());
+
+		$challenge->setStartDate(new \DateTimeImmutable('+1 day'));
+		$this->assertTrue($challenge->isDeletable());
+
+		$challenge->setStartDate(new \DateTimeImmutable('-1 day'));
+		$this->assertFalse($challenge->isDeletable());
 	}
 }

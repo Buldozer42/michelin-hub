@@ -5,6 +5,7 @@ namespace App\Tests\DataFixture;
 use App\DataFixtures\ChallengeFixtures;
 use App\Entity\Challenge;
 use App\Entity\Objective;
+use App\Entity\Reward;
 use App\Enum\ObjectiveType;
 use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\TestCase;
@@ -59,6 +60,15 @@ class ChallengeFixturesTest extends TestCase
 				$challenge->getStartDate()?->format('Y-m-d')
 			);
 			self::assertSame('2026-12-31', $challenge->getEndDate()?->format('Y-m-d'));
+
+			$reward = $challenge->getReward();
+			self::assertInstanceOf(Reward::class, $reward);
+			self::assertNotSame('', trim((string) $reward->getName()));
+			self::assertNotSame('', trim((string) $reward->getDescription()));
+			self::assertSame(
+				'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+				$reward->getImage()
+			);
 
 			$challengeObjectives = $challenge->getObjectives()->toArray();
 			self::assertCount(3, $challengeObjectives);
