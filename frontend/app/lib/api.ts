@@ -88,6 +88,62 @@ export async function apiRegister(payload: {
   return data as RegisterResponse;
 }
 
+/* ── Strava types ──────────────────────────────────────────────────── */
+
+export interface StravaAuthUrlResponse {
+  authorizationUrl: string;
+}
+
+export interface StravaExchangeResponse {
+  message: string;
+  stravaAccountId: number;
+  athleteId: number;
+  scope: string;
+  tokenExpiresAt: string;
+}
+
+export interface StravaRefreshResponse {
+  message: string;
+  stravaAccountId: number;
+  scope: string;
+  tokenExpiresAt: string;
+}
+
+/* ── Strava API ────────────────────────────────────────────────────── */
+
+export async function stravaGetAuthUrl(token: string): Promise<StravaAuthUrlResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/strava/authorize`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Impossible de recuperer l'URL Strava");
+  return data as StravaAuthUrlResponse;
+}
+
+export async function stravaExchangeToken(token: string, code: string): Promise<StravaExchangeResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/strava/token/exchange`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Echec de l'echange de token Strava");
+  return data as StravaExchangeResponse;
+}
+
+export async function stravaRefreshToken(token: string): Promise<StravaRefreshResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/strava/token/refresh`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Echec du rafraichissement Strava");
+  return data as StravaRefreshResponse;
+}
+
 /* ── Generic fetchers ───────────────────────────────────────────────── */
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {

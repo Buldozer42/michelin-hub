@@ -2,29 +2,28 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useStrava } from "../../context/StravaContext";
 import { useRouter } from "next/navigation";
 
-/* ─── Entity types (schema-aligned) ──────────────────────────── */
+/* ─── Entity types ──────────────────────────────────────────────── */
 
 type ObjectiveType = "DISTANCE" | "ELEVATION" | "FREQUENCY" | "DURATION";
 type ChallengeStatus = "DRAFT" | "ACTIVE" | "FINISHED" | "ARCHIVED";
-type ModalStep = "connect" | "connecting" | "sync" | "syncing";
+type ModalStep = "connect" | "connecting" | "sync" | "syncing" | "error" | "manage";
 
-/** Activity entity (schema: stravaActivityId, name, distance, movingTime, elevationGain, averageSpeed, sportType, startedAt) */
 interface Activity {
   id: string;
   stravaActivityId: string;
   name: string;
-  distance: number;        // km
-  movingTime: number;      // seconds
-  elevationGain: number;   // meters
-  averageSpeed: number;    // km/h
+  distance: number;
+  movingTime: number;
+  elevationGain: number;
+  averageSpeed: number;
   sportType: string;
-  startedAt: string;       // human-readable for display
+  startedAt: string;
   gradient: string;
 }
 
-/** FeedActivity — community + synced Strava activities for the feed */
 interface FeedActivity {
   id: string;
   initials: string;
@@ -39,105 +38,81 @@ interface FeedActivity {
   fromStrava?: boolean;
 }
 
-/* ─── Mock data (schema-aligned) ─────────────────────────────── */
+/* ─── Mock data (demo — no activity-fetch endpoint yet) ─────────── */
 
-/** Challenge entity */
 const CHALLENGE = {
   id: 1,
   title: "Grand Tour Michelin 2024",
   slug: "grand-tour-michelin-2024",
-  description: "Parcourez 1 000 km sur les routes françaises avant le 31 décembre.",
+  description: "Parcourez 1 000 km sur les routes francaises avant le 31 decembre.",
   objectiveType: "DISTANCE" as ObjectiveType,
   objectiveValue: 1000,
   startDate: "1 Oct. 2024",
-  endDate: "31 Déc. 2024",
+  endDate: "31 Dec. 2024",
   status: "ACTIVE" as ChallengeStatus,
 };
 
-/** ChallengeParticipation entity — mock for logged-in user */
 const MOCK_PARTICIPATION = {
-  progress: 0.67,         // 0.0–1.0
+  progress: 0.67,
   completed: false,
   rank: 142,
   joinedAt: "5 Oct. 2024",
 };
 
-/** Strava activities to import (Activity entity shape) */
 const STRAVA_PENDING: Activity[] = [
   {
-    id: "s1",
-    stravaActivityId: "11234567890",
-    name: "Tour du Viaduc de Millau",
-    distance: 67.3,
-    movingTime: 8100,   // 2h 15m
-    elevationGain: 820,
-    averageSpeed: 29.9,
-    sportType: "Ride",
-    startedAt: "Hier",
+    id: "s1", stravaActivityId: "11234567890",
+    name: "Tour du Viaduc de Millau", distance: 67.3,
+    movingTime: 8100, elevationGain: 820, averageSpeed: 29.9,
+    sportType: "Ride", startedAt: "Hier",
     gradient: "from-red-800 to-orange-600",
   },
   {
-    id: "s2",
-    stravaActivityId: "11234567891",
-    name: "Montée du Ventoux",
-    distance: 21.5,
-    movingTime: 6300,   // 1h 45m
-    elevationGain: 1617,
-    averageSpeed: 12.3,
-    sportType: "Ride",
-    startedAt: "Il y a 3 jours",
+    id: "s2", stravaActivityId: "11234567891",
+    name: "Montee du Ventoux", distance: 21.5,
+    movingTime: 6300, elevationGain: 1617, averageSpeed: 12.3,
+    sportType: "Ride", startedAt: "Il y a 3 jours",
     gradient: "from-indigo-900 to-blue-600",
   },
   {
-    id: "s3",
-    stravaActivityId: "11234567892",
-    name: "Sortie matinale Bordeaux",
-    distance: 42.1,
-    movingTime: 5280,   // 1h 28m
-    elevationGain: 210,
-    averageSpeed: 28.7,
-    sportType: "Ride",
-    startedAt: "Il y a 5 jours",
+    id: "s3", stravaActivityId: "11234567892",
+    name: "Sortie matinale Bordeaux", distance: 42.1,
+    movingTime: 5280, elevationGain: 210, averageSpeed: 28.7,
+    sportType: "Ride", startedAt: "Il y a 5 jours",
     gradient: "from-amber-600 to-yellow-400",
   },
 ];
 
 const INITIAL_FEED: FeedActivity[] = [
   {
-    id: "c1",
-    initials: "JD",
-    avatarBg: "bg-[#27509b]",
-    name: "Jean Dupont",
-    when: "Il y a 2 heures • Paris, France",
-    title: "Matinée Puissance sur les Quais",
+    id: "c1", initials: "JD", avatarBg: "bg-[#27509b]",
+    name: "Jean Dupont", when: "Il y a 2 heures · Paris, France",
+    title: "Matinee Puissance sur les Quais",
     desc: "Test des nouveaux pneus Michelin Power Cup. Grip exceptionnel sur sol humide.",
     gradient: "bg-gradient-to-br from-gray-700 to-gray-900",
     tireName: "Michelin Power Cup",
     stats: [
       { label: "DISTANCE", value: "54.2 km" },
-      { label: "DÉNIVELÉ", value: "450 m" },
+      { label: "DENIVELE", value: "450 m" },
       { label: "TEMPS", value: "1h 42m" },
     ],
   },
   {
-    id: "c2",
-    initials: "ML",
-    avatarBg: "bg-purple-600",
-    name: "Marie Lefebvre",
-    when: "Hier • Annecy, France",
+    id: "c2", initials: "ML", avatarBg: "bg-purple-600",
+    name: "Marie Lefebvre", when: "Hier · Annecy, France",
     title: "Tour du Lac - Record Personnel !",
-    desc: "Équipée en Michelin Lithion 2, une confiance totale dans les virages.",
+    desc: "Equipee en Michelin Lithion 2, une confiance totale dans les virages.",
     gradient: "bg-gradient-to-br from-blue-600 via-teal-500 to-emerald-400",
     tireName: "Michelin Lithion 2",
     stats: [
       { label: "DISTANCE", value: "38.0 km" },
-      { label: "DÉNIVELÉ", value: "120 m" },
+      { label: "DENIVELE", value: "120 m" },
       { label: "TEMPS", value: "1h 10m" },
     ],
   },
 ];
 
-/* ─── Helpers ─────────────────────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────────────────────── */
 
 function formatTime(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -156,7 +131,7 @@ function StravaLogo({ size = 28 }: { size?: number }) {
   );
 }
 
-/* ─── Feed card ───────────────────────────────────────────────── */
+/* ─── Feed card ──────────────────────────────────────────────────── */
 function FeedCard({ activity }: { activity: FeedActivity }) {
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-md">
@@ -178,7 +153,6 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
               <div className="text-gray-400 text-[11px]">{activity.when}</div>
             </div>
           </div>
-          <button className="text-gray-300 font-black text-xl leading-none">•••</button>
         </div>
 
         <h3 className="font-title text-[#000c34] text-base">{activity.title}</h3>
@@ -231,24 +205,25 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
   );
 }
 
-/* ─── Modal ───────────────────────────────────────────────────── */
+/* ─── Strava Modal ───────────────────────────────────────────────── */
 interface ModalProps {
   step: ModalStep;
   selected: Set<string>;
-  isConnected: boolean;
   lastSync: string | null;
   userInitials: string;
   userDisplayName: string;
+  connectError: string | null;
   onClose: () => void;
   onConnect: () => void;
   onToggleActivity: (id: string) => void;
   onSync: () => void;
   onDisconnect: () => void;
+  onManage: () => void;
 }
 
 function StravaModal({
-  step, selected, isConnected, lastSync, userInitials, userDisplayName,
-  onClose, onConnect, onToggleActivity, onSync, onDisconnect,
+  step, selected, lastSync, userInitials, userDisplayName, connectError,
+  onClose, onConnect, onToggleActivity, onSync, onDisconnect, onManage,
 }: ModalProps) {
   const selectedCount = selected.size;
 
@@ -283,13 +258,13 @@ function StravaModal({
             </div>
             <h2 className="font-title text-[#000c34] text-2xl text-center">Connectez Strava</h2>
             <p className="text-gray-500 text-sm text-center mt-1 mb-5">
-              Importez vos sorties et participez aux défis Michelin
+              Importez vos sorties et participez aux defis Michelin
             </p>
             <div className="space-y-3 mb-6">
               {[
-                "Importez automatiquement vos activités vélo",
-                "Comparez vos performances avec la communauté",
-                "Débloquez des défis et récompenses exclusifs",
+                "Importez automatiquement vos activites velo",
+                "Comparez vos performances avec la communaute",
+                "Debloquez des defis et recompenses exclusifs",
               ].map((b) => (
                 <div key={b} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-[#fce500] flex items-center justify-center shrink-0 mt-0.5">
@@ -303,14 +278,14 @@ function StravaModal({
             </div>
             <button
               onClick={onConnect}
-              className="w-full bg-[#FC4C02] text-white rounded-xl py-3.5 font-black text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors"
+              className="w-full bg-[#FC4C02] text-white rounded-xl py-3.5 font-black text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors min-h-[48px]"
             >
               <StravaLogo size={20} />
               Se connecter avec Strava
             </button>
             <p className="text-gray-400 text-[11px] text-center mt-3 leading-relaxed">
-              Nous accédons uniquement à vos activités vélo publiques.<br />
-              Vous pouvez déconnecter à tout moment.
+              Nous accedons uniquement a vos activites velo publiques.<br />
+              Vous pouvez deconnecter a tout moment.
             </p>
           </div>
         )}
@@ -324,19 +299,45 @@ function StravaModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
-            <div className="font-title text-[#000c34] text-lg mb-1">Connexion en cours…</div>
-            <p className="text-gray-400 text-sm text-center">Redirection vers Strava pour autorisation…</p>
+            <div className="font-title text-[#000c34] text-lg mb-1">Connexion en cours...</div>
+            <p className="text-gray-400 text-sm text-center">Redirection vers Strava pour autorisation...</p>
           </div>
         )}
 
-        {/* step: sync — uses real user name from auth */}
-        {step === "sync" && (
+        {/* step: error */}
+        {step === "error" && (
+          <div className="p-6 text-center">
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="w-14 h-14 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="font-title text-[#000c34] text-xl mb-2">Erreur de connexion</h2>
+            <p className="text-red-500 text-sm mb-5">{connectError}</p>
+            <button
+              onClick={onConnect}
+              className="w-full bg-[#FC4C02] text-white rounded-xl py-3.5 font-black text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors"
+            >
+              <StravaLogo size={20} />
+              Reessayer
+            </button>
+          </div>
+        )}
+
+        {/* step: manage — connected account overview */}
+        {step === "manage" && (
           <div className="p-6">
             <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+
             <div className="flex items-center gap-3 mb-5 p-3 bg-green-50 border border-green-200 rounded-xl">
               <div className="w-10 h-10 rounded-full bg-[#FC4C02] flex items-center justify-center text-white text-xs font-black shrink-0">
                 {userInitials}
@@ -344,18 +345,64 @@ function StravaModal({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-black text-[#000c34] text-sm">{userDisplayName}</span>
-                  <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">✓ Connecté</span>
+                  <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">Connecte</span>
                 </div>
                 <div className="text-gray-400 text-[11px]">
-                  {lastSync ? `Dernière sync : ${lastSync}` : "Prêt à synchroniser"}
+                  {lastSync ? `Derniere sync : ${lastSync}` : "Pret a synchroniser"}
                 </div>
               </div>
               <StravaLogo size={22} />
             </div>
 
-            <h3 className="font-title text-[#000c34] text-lg mb-1">Sorties récentes à importer</h3>
+            <h3 className="font-title text-[#000c34] text-lg mb-2">Compte Strava lie</h3>
+            <p className="text-gray-400 text-xs mb-5">
+              Votre compte Strava est connecte. Synchronisez vos sorties pour participer aux defis.
+            </p>
+
+            <button
+              onClick={onManage}
+              className="w-full bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors mb-2"
+            >
+              Synchroniser mes sorties
+            </button>
+
+            <button
+              onClick={onDisconnect}
+              className="w-full mt-1 text-gray-400 text-xs hover:text-red-500 transition-colors py-2"
+            >
+              Deconnecter Strava
+            </button>
+          </div>
+        )}
+
+        {/* step: sync */}
+        {step === "sync" && (
+          <div className="p-6">
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="flex items-center gap-3 mb-5 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <div className="w-10 h-10 rounded-full bg-[#FC4C02] flex items-center justify-center text-white text-xs font-black shrink-0">
+                {userInitials}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-[#000c34] text-sm">{userDisplayName}</span>
+                  <span className="bg-green-100 text-green-700 text-[9px] font-black px-2 py-0.5 rounded-full">Connecte</span>
+                </div>
+                <div className="text-gray-400 text-[11px]">
+                  {lastSync ? `Derniere sync : ${lastSync}` : "Pret a synchroniser"}
+                </div>
+              </div>
+              <StravaLogo size={22} />
+            </div>
+
+            <h3 className="font-title text-[#000c34] text-lg mb-1">Sorties recentes a importer</h3>
             <p className="text-gray-400 text-xs mb-4">
-              Sélectionnez les activités (Activity) à ajouter au défi
+              Selectionnez les activites a ajouter au defi
             </p>
 
             <div className="space-y-2 mb-5">
@@ -387,11 +434,11 @@ function StravaModal({
                     <div className="font-black text-[#000c34] text-sm truncate">{a.name}</div>
                     <div className="text-gray-400 text-[11px] flex items-center gap-2 mt-0.5">
                       <span>{a.distance} km</span>
-                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-300">&middot;</span>
                       <span>+{a.elevationGain} m</span>
-                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-300">&middot;</span>
                       <span>{formatTime(a.movingTime)}</span>
-                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-300">&middot;</span>
                       <span>{a.averageSpeed} km/h moy.</span>
                     </div>
                   </div>
@@ -403,7 +450,7 @@ function StravaModal({
             <button
               onClick={onSync}
               disabled={selectedCount === 0}
-              className={`w-full rounded-xl py-3.5 font-black text-sm transition-colors ${
+              className={`w-full rounded-xl py-3.5 font-black text-sm transition-colors min-h-[48px] ${
                 selectedCount > 0
                   ? "bg-[#fce500] text-[#000c34] hover:bg-yellow-300"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -411,14 +458,14 @@ function StravaModal({
             >
               {selectedCount > 0
                 ? `Synchroniser ${selectedCount} sortie${selectedCount > 1 ? "s" : ""}`
-                : "Sélectionnez au moins une sortie"}
+                : "Selectionnez au moins une sortie"}
             </button>
 
             <button
               onClick={onDisconnect}
               className="w-full mt-2 text-gray-400 text-xs hover:text-red-500 transition-colors py-2"
             >
-              Déconnecter Strava
+              Deconnecter Strava
             </button>
           </div>
         )}
@@ -432,7 +479,7 @@ function StravaModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             </div>
-            <div className="font-title text-[#000c34] text-lg mb-1">Synchronisation…</div>
+            <div className="font-title text-[#000c34] text-lg mb-1">Synchronisation...</div>
             <p className="text-gray-400 text-sm text-center">
               Import de {selectedCount} sortie{selectedCount > 1 ? "s" : ""} depuis Strava
             </p>
@@ -443,7 +490,7 @@ function StravaModal({
   );
 }
 
-/* ─── Toast ───────────────────────────────────────────────────── */
+/* ─── Toast ──────────────────────────────────────────────────────── */
 function SyncSuccessToast({ count, onDone }: { count: number; onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 3500);
@@ -458,28 +505,58 @@ function SyncSuccessToast({ count, onDone }: { count: number; onDone: () => void
         </svg>
       </div>
       <span className="font-semibold text-sm">
-        {count} sortie{count > 1 ? "s" : ""} Strava importée{count > 1 ? "s" : ""} avec succès !
+        {count} sortie{count > 1 ? "s" : ""} Strava importee{count > 1 ? "s" : ""} avec succes !
       </span>
       <StravaLogo size={18} />
     </div>
   );
 }
 
-/* ─── Main export ─────────────────────────────────────────────── */
+/* ─── Disconnect confirm ─────────────────────────────────────────── */
+function DisconnectConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#000c34]/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-[#FC4C02] rounded-xl flex items-center justify-center shrink-0">
+            <StravaLogo size={24} />
+          </div>
+          <h3 className="font-title text-[#000c34] text-xl">Deconnecter Strava ?</h3>
+        </div>
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          Votre compte Strava sera delie. Vous ne pourrez plus synchroniser vos sorties. Vos activites deja importees seront conservees.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 px-4 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            Annuler
+          </button>
+          <button onClick={onConfirm}
+            className="flex-1 px-4 py-3 text-sm font-black text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors">
+            Deconnecter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main export ────────────────────────────────────────────────── */
 export default function StravaSection() {
   const { user } = useAuth();
+  const { isConnected, loading: stravaLoading, error: stravaError, connect, disconnect, clearError } = useStrava();
   const router = useRouter();
-  const [isConnected, setIsConnected] = useState(false);
+
   const [isParticipating, setIsParticipating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>("connect");
-  const [selected, setSelected] = useState<Set<string>>(
-    new Set(STRAVA_PENDING.map((a) => a.id))
-  );
+  const [selected, setSelected] = useState<Set<string>>(new Set(STRAVA_PENDING.map((a) => a.id)));
   const [feedActivities, setFeedActivities] = useState<FeedActivity[]>(INITIAL_FEED);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
   const [toastCount, setToastCount] = useState<number | null>(null);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
   const userInitials = user
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
@@ -493,17 +570,23 @@ export default function StravaSection() {
       router.push("/login");
       return;
     }
-    setModalStep(isConnected ? "sync" : "connect");
+    clearError();
+    if (isConnected) {
+      setModalStep("manage");
+    } else {
+      setModalStep("connect");
+    }
     setModalOpen(true);
-  }, [user, isConnected, router]);
+  }, [user, isConnected, router, clearError]);
 
-  const handleConnect = useCallback(() => {
+  const handleConnect = useCallback(async () => {
     setModalStep("connecting");
-    setTimeout(() => {
-      setIsConnected(true);
-      setModalStep("sync");
-    }, 1800);
-  }, []);
+    try {
+      await connect();
+    } catch (err) {
+      setModalStep("error");
+    }
+  }, [connect]);
 
   const handleToggle = useCallback((id: string) => {
     setSelected((prev) => {
@@ -519,7 +602,7 @@ export default function StravaSection() {
     setModalStep("syncing");
 
     setTimeout(() => {
-      setLastSync("à l'instant");
+      setLastSync("a l'instant");
       setIsParticipating(true);
 
       const newActivities: FeedActivity[] = STRAVA_PENDING.filter(
@@ -529,13 +612,13 @@ export default function StravaSection() {
         initials: userInitials,
         avatarBg: "bg-[#FC4C02]",
         name: userDisplayName,
-        when: `${a.startedAt} • Via Strava`,
+        when: `${a.startedAt} · Via Strava`,
         title: a.name,
         desc: `${a.sportType} · ${a.distance} km · +${a.elevationGain} m · ${a.averageSpeed} km/h moy.`,
         gradient: `bg-gradient-to-br ${a.gradient}`,
         stats: [
           { label: "DISTANCE", value: `${a.distance} km` },
-          { label: "DÉNIVELÉ", value: `+${a.elevationGain} m` },
+          { label: "DENIVELE", value: `+${a.elevationGain} m` },
           { label: "TEMPS", value: formatTime(a.movingTime) },
         ],
         fromStrava: true,
@@ -549,14 +632,19 @@ export default function StravaSection() {
   }, [selected, syncedIds, userInitials, userDisplayName]);
 
   const handleDisconnect = useCallback(() => {
-    setIsConnected(false);
+    setShowDisconnectConfirm(true);
+  }, []);
+
+  const confirmDisconnect = useCallback(() => {
+    disconnect();
     setIsParticipating(false);
     setLastSync(null);
     setSyncedIds(new Set());
     setSelected(new Set(STRAVA_PENDING.map((a) => a.id)));
     setFeedActivities(INITIAL_FEED);
     setModalOpen(false);
-  }, []);
+    setShowDisconnectConfirm(false);
+  }, [disconnect]);
 
   const progressKm = Math.round(CHALLENGE.objectiveValue * MOCK_PARTICIPATION.progress);
 
@@ -577,17 +665,15 @@ export default function StravaSection() {
         </div>
 
         <div className="relative z-10 p-6 md:p-12 max-w-xl">
-          {/* Challenge entity: status + objectiveType */}
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full tracking-widest">
               {CHALLENGE.status}
             </span>
             <span className="text-white/50 text-[10px] font-semibold tracking-widest">
-              {CHALLENGE.objectiveType} · {CHALLENGE.objectiveValue.toLocaleString("fr-FR")} km
+              {CHALLENGE.objectiveType} &middot; {CHALLENGE.objectiveValue.toLocaleString("fr-FR")} km
             </span>
           </div>
 
-          {/* Challenge title */}
           <h2 className="font-title text-white text-3xl md:text-4xl leading-tight">
             {CHALLENGE.title}
           </h2>
@@ -595,7 +681,6 @@ export default function StravaSection() {
             {CHALLENGE.startDate} — {CHALLENGE.endDate}
           </p>
 
-          {/* ChallengeParticipation progress (shown after joining) */}
           {isParticipating && (
             <div className="mt-4 bg-white/10 rounded-xl p-4 border border-white/20">
               <div className="flex justify-between items-center mb-2">
@@ -617,32 +702,39 @@ export default function StravaSection() {
               </div>
               <div className="flex justify-between text-white/40 text-[10px] mt-1">
                 <span>Rejoint le {MOCK_PARTICIPATION.joinedAt}</span>
-                <span>{Math.round(MOCK_PARTICIPATION.progress * 100)}% complété</span>
+                <span>{Math.round(MOCK_PARTICIPATION.progress * 100)}% complete</span>
               </div>
             </div>
           )}
 
-          {/* CTAs */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               onClick={handleOpenModal}
-              className="bg-[#fce500] text-[#000c34] rounded-xl px-6 py-3.5 text-sm font-black hover:bg-yellow-300 transition-colors inline-flex items-center gap-2"
+              className="bg-[#fce500] text-[#000c34] rounded-xl px-6 py-3.5 text-sm font-black hover:bg-yellow-300 transition-colors inline-flex items-center gap-2 min-h-[48px]"
             >
-              {isParticipating ? "Synchroniser mes sorties" : "Relevez le Défi"}
+              {isParticipating ? "Synchroniser mes sorties" : "Relevez le Defi"}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </button>
 
-            {isConnected ? (
+            {stravaLoading ? (
+              <div className="inline-flex items-center gap-2 bg-white/10 text-white/50 text-xs font-semibold px-4 py-3 rounded-xl border border-white/10">
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Chargement Strava...
+              </div>
+            ) : isConnected ? (
               <button
                 onClick={handleOpenModal}
                 className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-3 rounded-xl transition-colors border border-white/20"
               >
                 <StravaLogo size={14} />
-                Strava connecté · Synchroniser
-                <svg className="w-3.5 h-3.5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                Strava connecte
+                <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
               </button>
             ) : (
@@ -662,8 +754,7 @@ export default function StravaSection() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-title text-[#000c34] text-xl flex items-center gap-2">
-            <span className="text-[#fce500] bg-[#000c34] w-7 h-7 rounded-lg flex items-center justify-center text-sm">⚡</span>
-            Flux d&apos;activités
+            Flux d&apos;activites
           </h2>
           {isConnected && (
             <button
@@ -683,20 +774,29 @@ export default function StravaSection() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Strava Modal */}
       {modalOpen && (
         <StravaModal
           step={modalStep}
           selected={selected}
-          isConnected={isConnected}
           lastSync={lastSync}
           userInitials={userInitials}
           userDisplayName={userDisplayName}
+          connectError={stravaError}
           onClose={() => setModalOpen(false)}
           onConnect={handleConnect}
           onToggleActivity={handleToggle}
           onSync={handleSync}
           onDisconnect={handleDisconnect}
+          onManage={() => setModalStep("sync")}
+        />
+      )}
+
+      {/* Disconnect confirm */}
+      {showDisconnectConfirm && (
+        <DisconnectConfirm
+          onConfirm={confirmDisconnect}
+          onCancel={() => setShowDisconnectConfirm(false)}
         />
       )}
 
