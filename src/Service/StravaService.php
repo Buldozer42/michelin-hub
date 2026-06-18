@@ -97,6 +97,28 @@ class StravaService
 	}
 
 	/**
+	 * Revokes the application's access to the athlete's Strava data.
+	 * After this call, the athlete will need to re-authorize the app.
+	 *
+	 * @param string $accessToken The access token to deauthorize.
+	 * @return array An array containing the HTTP status code and the response data from Strava.
+	 */
+	public function deauthorize(string $accessToken): array
+	{
+		return $this->callJsonEndpoint(
+			'https://www.strava.com/oauth/deauthorize',
+			[
+				'Authorization: Bearer ' . $accessToken,
+				'Content-Type: application/x-www-form-urlencoded',
+			],
+			[
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => '',
+			]
+		);
+	}
+
+	/**
 	 * Encrypts the given token using AES-256-CBC encryption.
 	 * 
 	 * @param string $plainToken The token to be encrypted.

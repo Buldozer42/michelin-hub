@@ -1,0 +1,7 @@
+.git
+.github
+vendor
+var/cache
+var/log
+frontend/node_modules
+node_modules

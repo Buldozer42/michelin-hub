@@ -25,7 +25,7 @@ class ActivityService
 
 	/**
 	 * Synchronizes the activities of a given user with Strava.
-	 * 
+	 *
 	 * @param User $user The user whose activities are to be synchronized.
 	 * @return array<string,int> An associative array containing the counts of synced, created, updated, and deleted activities.
 	 * @throws ActivitySyncException If there is an error during the synchronization process.
@@ -97,6 +97,22 @@ class ActivityService
 			'created' => count($remoteActivities),
 			'updated' => 0,
 			'deleted' => $deleted,
+			'activities' => array_map(static fn (Activity $a) => [
+				'id' => $a->getId(),
+				'activityId' => $a->getActivityId(),
+				'name' => $a->getName(),
+				'distance' => $a->getDistance(),
+				'movingTime' => $a->getMovingTime(),
+				'elapsedTime' => $a->getElapsedTime(),
+				'totalElevationGain' => $a->getTotalElevationGain(),
+				'type' => $a->getType(),
+				'sportType' => $a->getSportType(),
+				'startedAt' => $a->getStartedAt()?->format(\DATE_ATOM),
+				'locationCity' => $a->getLocationCity(),
+				'locationCountry' => $a->getLocationCountry(),
+				'averageSpeed' => $a->getAverageSpeed(),
+				'maxSpeed' => $a->getMaxSpeed(),
+			], $syncedActivities),
 		];
 	}
 
@@ -187,7 +203,7 @@ class ActivityService
 
 	/**
 	 * Fetches all activities for the given access token from Strava
-	 * 
+	 *
 	 * @param string $accessToken The access token to use for fetching activities.
 	 * @return array A list of activities fetched from Strava
 	 */
@@ -230,7 +246,7 @@ class ActivityService
 
 	/**
 	 * Hydrates an Activity entity with data from the given payload and associates it with the given user.
-	 * 
+	 *
 	 * @param Activity $activity The Activity entity to be hydrated.
 	 * @param User $user The user to associate with the activity.
 	 * @param array $payload The payload containing activity data from Strava.
@@ -309,7 +325,7 @@ class ActivityService
 
 	/**
 	 * Normalizes the activity page data fetched from Strava
-	 * 
+	 *
 	 * @param array $value The activity page data to be normalized.
 	 * @return array The normalized activity page data.
 	 */
@@ -326,7 +342,7 @@ class ActivityService
 
 	/**
 	 * Deduplicates the given list of activities by their activity ID.
-	 * 
+	 *
 	 * @param array $activities The list of activities to be deduplicated.
 	 * @return array The deduplicated list of activities.
 	 */
@@ -343,7 +359,7 @@ class ActivityService
 
 	/**
 	 * Normalizes the activity ID from the given payload and validates it.
-	 * 
+	 *
 	 * @param mixed $activityId The activity ID to be normalized.
 	 * @param array $payload The payload containing activity data from Strava.
 	 * @return string The normalized activity ID.
@@ -364,7 +380,7 @@ class ActivityService
 
 	/**
 	 * Updates the progress of ongoing challenge participations for the given user based on their activities.
-	 * 
+	 *
 	 * @param User $user The user whose challenge participations are to be updated.
 	 * @param Activity[] $activities The list of activities to consider for updating challenge progress.
 	 * @throws \InvalidArgumentException If the challenge has no objectives or if an objective type is unknown or unsupported.
@@ -404,7 +420,7 @@ class ActivityService
 
 	/**
 	 * Determines if a given challenge is currently ongoing based on its start and end dates.
-	 * 
+	 *
 	 * @param Challenge $challenge The challenge to be checked.
 	 * @param \DateTimeImmutable $now The current date and time for comparison.
 	 * @return bool True if the challenge is ongoing, false otherwise.
@@ -423,7 +439,7 @@ class ActivityService
 
 	/**
 	 * Calculates the overall progress of a challenge based on its objectives and the provided activities.
-	 * 
+	 *
 	 * @param Challenge $challenge The challenge for which the progress is to be calculated.
 	 * @param Activity[] $activities The list of activities to consider for the calculation.
 	 * @return float The calculated progress of the challenge, expressed as a percentage (0.0 to 100.0).
@@ -451,7 +467,7 @@ class ActivityService
 
 	/**
 	 * Filters the given list of activities to include only those that fall within the start and end dates of the specified challenge.
-	 * 
+	 *
 	 * @param array $activities The list of activities to be filtered.
 	 * @param Challenge $challenge The challenge whose start and end dates are used for filtering.
 	 * @return array The filtered list of activities that fall within the challenge's date range.
@@ -476,7 +492,7 @@ class ActivityService
 
 	/**
 	 * Calculates the ratio of progress for a given objective based on the provided activities.
-	 * 
+	 *
 	 * @param Objective $objective The objective for which the ratio is to be calculated.
 	 * @param Activity[] $activities The list of activities to consider for the calculation.
 	 * @return float The calculated ratio of progress for the objective, expressed as a decimal value.

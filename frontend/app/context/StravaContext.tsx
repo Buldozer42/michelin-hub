@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { stravaGetAuthUrl, stravaExchangeToken, stravaRefreshToken } from '../lib/api';
+import { stravaGetAuthUrl, stravaExchangeToken, stravaRefreshToken, stravaSyncActivities, stravaDisconnect, type StravaSyncResponse, type SyncedActivity } from '../lib/api';
 
 interface StravaAccount {
   stravaAccountId: number;
@@ -14,24 +14,33 @@ interface StravaAccount {
 interface StravaContextType {
   isConnected: boolean;
   account: StravaAccount | null;
+  activities: SyncedActivity[];
+  lastSync: string | null;
   loading: boolean;
+  syncing: boolean;
   error: string | null;
   connect: () => Promise<void>;
   exchangeCode: (code: string) => Promise<void>;
   refresh: () => Promise<void>;
-  disconnect: () => void;
+  syncActivities: () => Promise<StravaSyncResponse>;
+  disconnect: () => Promise<void>;
   clearError: () => void;
 }
 
 const StravaContext = createContext<StravaContextType | null>(null);
 
 const STRAVA_KEY = 'michelin_hub_strava';
+const STRAVA_ACTIVITIES_KEY = 'michelin_hub_strava_activities';
+const STRAVA_LASTSYNC_KEY = 'michelin_hub_strava_lastsync';
 const STRAVA_PENDING_KEY = 'michelin_hub_strava_pending';
 
 export function StravaProvider({ children }: { children: ReactNode }) {
   const { user, token } = useAuth();
   const [account, setAccount] = useState<StravaAccount | null>(null);
+  const [activities, setActivities] = useState<SyncedActivity[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const persistAccount = useCallback((data: StravaAccount | null) => {
@@ -46,9 +55,18 @@ export function StravaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || !token) {
       setAccount(null);
+      setActivities([]);
+      setLastSync(null);
       setLoading(false);
       return;
     }
+
+    const storedActivities = localStorage.getItem(STRAVA_ACTIVITIES_KEY);
+    if (storedActivities) {
+      try { setActivities(JSON.parse(storedActivities)); } catch { /* ignore */ }
+    }
+    const storedLastSync = localStorage.getItem(STRAVA_LASTSYNC_KEY);
+    if (storedLastSync) setLastSync(storedLastSync);
 
     const stored = localStorage.getItem(STRAVA_KEY);
     if (stored) {
@@ -134,10 +152,38 @@ export function StravaProvider({ children }: { children: ReactNode }) {
     }
   }, [token, account, persistAccount]);
 
-  const disconnect = useCallback(() => {
+  const syncActivities = useCallback(async (): Promise<StravaSyncResponse> => {
+    if (!token) throw new Error('Non authentifie');
+    setError(null);
+    setSyncing(true);
+    try {
+      const result = await stravaSyncActivities(token);
+      setActivities(result.activities);
+      localStorage.setItem(STRAVA_ACTIVITIES_KEY, JSON.stringify(result.activities));
+      const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      setLastSync(now);
+      localStorage.setItem(STRAVA_LASTSYNC_KEY, now);
+      return result;
+    } finally {
+      setSyncing(false);
+    }
+  }, [token]);
+
+  const disconnect = useCallback(async () => {
+    if (token) {
+      try {
+        await stravaDisconnect(token);
+      } catch {
+        // continue with local cleanup even if backend call fails
+      }
+    }
     persistAccount(null);
+    setActivities([]);
+    setLastSync(null);
     localStorage.removeItem(STRAVA_PENDING_KEY);
-  }, [persistAccount]);
+    localStorage.removeItem(STRAVA_ACTIVITIES_KEY);
+    localStorage.removeItem(STRAVA_LASTSYNC_KEY);
+  }, [token, persistAccount]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -145,11 +191,15 @@ export function StravaProvider({ children }: { children: ReactNode }) {
     <StravaContext.Provider value={{
       isConnected: account !== null,
       account,
+      activities,
+      lastSync,
       loading,
+      syncing,
       error,
       connect,
       exchangeCode,
       refresh,
+      syncActivities,
       disconnect,
       clearError,
     }}>

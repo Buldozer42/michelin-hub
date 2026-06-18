@@ -112,7 +112,7 @@ export interface StravaRefreshResponse {
 /* ── Strava API ────────────────────────────────────────────────────── */
 
 export async function stravaGetAuthUrl(token: string): Promise<StravaAuthUrlResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/strava/authorize`, {
+  const res = await fetch(`${API_BASE_URL}/api/authorize?scope=read,activity:read_all`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -142,6 +142,67 @@ export async function stravaRefreshToken(token: string): Promise<StravaRefreshRe
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Echec du rafraichissement Strava");
   return data as StravaRefreshResponse;
+}
+
+export interface SyncedActivity {
+  id: number;
+  activityId: string;
+  name: string;
+  distance: number;
+  movingTime: number;
+  elapsedTime: number;
+  totalElevationGain: number;
+  type: string;
+  sportType: string;
+  startedAt: string;
+  locationCity: string | null;
+  locationCountry: string | null;
+  averageSpeed: number;
+  maxSpeed: number;
+}
+
+export interface StravaSyncResponse {
+  message: string;
+  synced: number;
+  created: number;
+  updated: number;
+  deleted: number;
+  activities: SyncedActivity[];
+}
+
+export async function stravaSyncActivities(token: string): Promise<StravaSyncResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/activity/sync`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: "{}",
+  });
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Erreur ${res.status}: reponse invalide du serveur`);
+  }
+  if (!res.ok) {
+    const msg = (data.error ?? data['hydra:description'] ?? data.detail ?? `Erreur ${res.status}`) as string;
+    throw new Error(msg);
+  }
+  return data as unknown as StravaSyncResponse;
+}
+
+export async function stravaDisconnect(token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/strava/disconnect`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as Record<string, string>).error ?? "Echec de la deconnexion Strava");
+  }
 }
 
 /* ── Generic fetchers ───────────────────────────────────────────────── */
