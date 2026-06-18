@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -48,9 +50,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?StravaAccount $stravaAccount = null;
 
+    /**
+     * @var Collection<int, Bike>
+     */
+    #[ORM\OneToMany(targetEntity: Bike::class, mappedBy: 'owner', cascade: ['persist', 'remove'])]
+    private Collection $bikes;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->bikes = new ArrayCollection();
     }
 
     /**
@@ -214,6 +223,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->stravaAccount = $stravaAccount;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Bike>
+     */
+    public function getBikes(): Collection
+    {
+        return $this->bikes;
+    }
+
+    public function addBike(Bike $bike): static
+    {
+        if (!$this->bikes->contains($bike)) {
+            $this->bikes->add($bike);
+            $bike->setOwner($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBike(Bike $bike): static
+    {
+        if ($this->bikes->removeElement($bike)) {
+            if ($bike->getOwner() === $this) {
+                $bike->setOwner(null);
+            }
+        }
 
         return $this;
     }
