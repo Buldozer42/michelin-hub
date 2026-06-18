@@ -581,3 +581,105 @@ export async function deleteLike(id: number, token: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 }
+
+/* ── Gum (admin write) ─────────────────────────────────────────────────── */
+
+export interface ApiGum {
+  id: number;
+  name: string;
+  gripType: string;
+}
+
+export type GumPayload = { name: string; gripType: string };
+
+async function adminError(res: Response): Promise<never> {
+  const body = await res.json().catch(() => ({}));
+  const msg =
+    (body as Record<string, string>)['hydra:description'] ??
+    (body as Record<string, string>)['detail'] ??
+    `${res.status} ${res.statusText}`;
+  throw new Error(msg);
+}
+
+export async function getGums(): Promise<ApiGum[]> {
+  const data = await apiFetch<HydraCollection<ApiGum>>('/api/gums');
+  return data.member;
+}
+
+export async function createGum(payload: GumPayload, token: string): Promise<ApiGum> {
+  const res = await fetch(`${API_BASE_URL}/api/gums`, {
+    method: 'POST',
+    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return adminError(res);
+  return res.json();
+}
+
+export async function updateGum(id: number, payload: Partial<GumPayload>, token: string): Promise<ApiGum> {
+  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
+    method: 'PATCH',
+    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return adminError(res);
+  return res.json();
+}
+
+export async function deleteGum(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
+
+/* ── TireLine (admin write) ────────────────────────────────────────────── */
+
+export interface ApiTireLine {
+  id: number;
+  name: string;
+  manufacturer: string;
+  description: string | null;
+  url: string | null;
+}
+
+export type TireLinePayload = {
+  name: string;
+  manufacturer: string;
+  description?: string | null;
+  url?: string | null;
+};
+
+export async function getTireLines(): Promise<ApiTireLine[]> {
+  const data = await apiFetch<HydraCollection<ApiTireLine>>('/api/tire_lines');
+  return data.member;
+}
+
+export async function createTireLine(payload: TireLinePayload, token: string): Promise<ApiTireLine> {
+  const res = await fetch(`${API_BASE_URL}/api/tire_lines`, {
+    method: 'POST',
+    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return adminError(res);
+  return res.json();
+}
+
+export async function updateTireLine(id: number, payload: Partial<TireLinePayload>, token: string): Promise<ApiTireLine> {
+  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
+    method: 'PATCH',
+    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return adminError(res);
+  return res.json();
+}
+
+export async function deleteTireLine(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
