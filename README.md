@@ -8,8 +8,8 @@
   - [Configuration](#configuration)
     - [1) Variables d'environnement](#1-variables-denvironnement)
     - [2) Cles JWT](#2-cles-jwt)
-  - [Installation et lancement local](#installation-et-lancement-local)
-  - [Lancement avec Docker Compose PostgreSQL](#lancement-avec-docker-compose-postgresql)
+  - [Lancement full Docker (API + Front + MySQL)](#lancement-full-docker-api--front--mysql)
+  - [Execution locale (optionnel)](#execution-locale-optionnel)
   - [Jeu de donnees de dev fixtures](#jeu-de-donnees-de-dev-fixtures)
   - [Documentation API](#documentation-api)
   - [Principaux endpoints](#principaux-endpoints)
@@ -19,13 +19,10 @@
 
 ## Prerequis
 
-- PHP 8.2+
-- Composer
-- OpenSSL (generation des cles JWT)
-- Une base de donnees:
-	- MySQL/MariaDB (usage local classique)
-	- ou PostgreSQL via Docker Compose
-- Optionnel: Symfony CLI
+- Docker Desktop (ou Docker Engine + plugin Docker Compose)
+- OpenSSL (uniquement si vous regenerez les cles JWT)
+
+Pour une execution sans Docker, voir la section "Execution locale (optionnel)".
 
 ## Configuration
 
@@ -70,7 +67,55 @@ Puis ajoutez la passphrase dans `.env.local`:
 JWT_PASSPHRASE=mettre_la_meme_passphrase_que_lors_de_la_generation
 ```
 
-## Installation et lancement local
+## Lancement full Docker (API + Front + MySQL)
+
+Cette stack lance:
+
+- `database` (MySQL 8)
+- `backend` (Symfony/API Platform sur http://localhost:8000)
+- `frontend` (Next.js sur http://localhost:3000)
+
+1. Construire et demarrer tous les services:
+
+```bash
+docker compose up -d --build
+```
+
+2. Appliquer les migrations depuis le conteneur backend:
+
+```bash
+docker compose exec backend php bin/console doctrine:migrations:migrate -n
+```
+
+3. Charger les fixtures (option dev):
+
+```bash
+docker compose exec backend php bin/console doctrine:fixtures:load -n
+```
+
+4. Ouvrir les apps:
+
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- API: [http://localhost:8000](http://localhost:8000)
+- Swagger: [http://localhost:8000/api](http://localhost:8000/api)
+
+La base MySQL est exposee sur le port hote `3312`.
+
+Ports par defaut (configurables):
+
+- `FRONTEND_PORT` (defaut `3000`)
+- `BACKEND_PORT` (defaut `8000`)
+- `DB_PORT` (defaut `3312`)
+
+Exemple si `8000` est deja pris (PowerShell):
+
+```bash
+$env:BACKEND_PORT=8001; $env:FRONTEND_PORT=3001; docker compose up -d --build
+```
+
+## Execution locale (optionnel)
+
+Si vous ne souhaitez pas Dockeriser localement:
 
 ```bash
 composer install
@@ -91,28 +136,6 @@ Frontend (React) dans le dossier `frontend`:
 cd frontend
 npm install
 npm run dev
-```
-
-## Lancement avec Docker Compose PostgreSQL
-
-Le fichier `compose.yaml` fournit un service PostgreSQL.
-
-1. Demarrer la base:
-
-```bash
-docker compose up -d database
-```
-
-2. Definir un `DATABASE_URL` PostgreSQL dans `.env.local`:
-
-```dotenv
-DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&charset=utf8"
-```
-
-3. Appliquer les migrations:
-
-```bash
-php bin/console doctrine:migrations:migrate -n
 ```
 
 ## Jeu de donnees de dev fixtures
@@ -194,11 +217,3 @@ Le coverage necessite Xdebug. Exemple dans `php.ini`:
 ```ini
 xdebug.mode=debug,coverage
 ```
-
-A REVOIR!!!!
-1 : changer le mot de passe dans compose.yaml
-2 : docker compose up -d
-3 : composer install dans la racine du projet
-4 : php bin/console d:m:m  (d:d:c si la database n'a pas été créer)
-5 : php bin/console d:f:l
-6 : cd frontend pui npm install ensuite npm run dev.
