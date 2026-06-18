@@ -1,17 +1,14 @@
 #!/bin/sh
 set -e
 
-echo "🔐 Checking JWT keys..."
+echo "Checking JWT keys..."
 
 mkdir -p config/jwt
 
 if [ ! -f config/jwt/private.pem ]; then
-  echo "Generating JWT keys..."
+  echo "Generating JWT keys (no passphrase)..."
 
-  # génération clé privée
-  openssl genrsa -out config/jwt/private.pem -aes256 4096
-
-  # génération clé publique
+  openssl genrsa -out config/jwt/private.pem 4096
   openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem
 fi
 
