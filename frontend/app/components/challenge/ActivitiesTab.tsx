@@ -55,7 +55,12 @@ function StravaLogo({ size = 28 }: { size?: number }) {
   );
 }
 
-function ActivityCard({ activity, index }: { activity: SyncedActivity; index: number }) {
+function ActivityCard({ activity, index, isShared, onToggleShare }: {
+  activity: { id: number; activityId: string; name: string; distance: number; movingTime: number; totalElevationGain: number; sportType: string; startedAt: string; locationCity: string | null; locationCountry: string | null; averageSpeed: number };
+  index: number;
+  isShared: boolean;
+  onToggleShare: () => void;
+}) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
   const location = [activity.locationCity, activity.locationCountry].filter(Boolean).join(", ");
 
@@ -99,6 +104,33 @@ function ActivityCard({ activity, index }: { activity: SyncedActivity; index: nu
             <div className="text-gray-400 text-[9px] font-black tracking-widest">VITESSE</div>
             <div className="text-[#000c34] font-black text-base">{formatSpeed(activity.averageSpeed)} km/h</div>
           </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={onToggleShare}
+            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+              isShared
+                ? "bg-green-50 text-green-600 border border-green-200 hover:bg-red-50 hover:text-red-500 hover:border-red-200"
+                : "bg-[#27509b]/10 text-[#27509b] border border-[#27509b]/20 hover:bg-[#27509b]/20"
+            }`}
+          >
+            {isShared ? (
+              <>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                </svg>
+                Partagee au flux
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Partager au flux
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -200,7 +232,7 @@ function EmptyState({ isConnected, onConnect, onSync, syncing }: {
 
 export default function ActivitiesTab() {
   const { user } = useAuth();
-  const { isConnected, connect, syncActivities, activities, lastSync, syncing } = useStrava();
+  const { isConnected, connect, syncActivities, activities, lastSync, syncing, sharedActivityIds, shareActivity, unshareActivity } = useStrava();
   const router = useRouter();
 
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -266,7 +298,19 @@ export default function ActivitiesTab() {
         {activities.length > 0 ? (
           <div className="space-y-3">
             {activities.map((a, i) => (
-              <ActivityCard key={a.id} activity={a} index={i} />
+              <ActivityCard
+                key={a.id}
+                activity={a}
+                index={i}
+                isShared={sharedActivityIds.includes(a.activityId)}
+                onToggleShare={() => {
+                  if (sharedActivityIds.includes(a.activityId)) {
+                    unshareActivity(a.activityId);
+                  } else {
+                    shareActivity(a.activityId);
+                  }
+                }}
+              />
             ))}
           </div>
         ) : (

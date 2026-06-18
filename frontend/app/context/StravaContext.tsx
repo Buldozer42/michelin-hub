@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { stravaGetAuthUrl, stravaExchangeToken, stravaRefreshToken, stravaSyncActivities, stravaDisconnect, type StravaSyncResponse, type SyncedActivity } from '../lib/api';
 
@@ -19,20 +19,24 @@ interface StravaContextType {
   loading: boolean;
   syncing: boolean;
   error: string | null;
+  sharedActivityIds: string[];
   connect: () => Promise<void>;
   exchangeCode: (code: string) => Promise<void>;
   refresh: () => Promise<void>;
   syncActivities: () => Promise<StravaSyncResponse>;
   disconnect: () => Promise<void>;
   clearError: () => void;
+  shareActivity: (activityId: string) => void;
+  unshareActivity: (activityId: string) => void;
 }
 
 const StravaContext = createContext<StravaContextType | null>(null);
 
-const STRAVA_KEY = 'michelin_hub_strava';
-const STRAVA_ACTIVITIES_KEY = 'michelin_hub_strava_activities';
-const STRAVA_LASTSYNC_KEY = 'michelin_hub_strava_lastsync';
 const STRAVA_PENDING_KEY = 'michelin_hub_strava_pending';
+
+function userKey(base: string, userId: number): string {
+  return `${base}_u${userId}`;
+}
 
 export function StravaProvider({ children }: { children: ReactNode }) {
   const { user, token } = useAuth();
@@ -42,70 +46,107 @@ export function StravaProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sharedActivityIds, setSharedActivityIds] = useState<string[]>([]);
+
+  const userIdRef = useRef<number | null>(null);
+
+  const stravaKey = user ? userKey('michelin_hub_strava', user.id) : null;
+  const activitiesKey = user ? userKey('michelin_hub_strava_activities', user.id) : null;
+  const lastSyncKey = user ? userKey('michelin_hub_strava_lastsync', user.id) : null;
+  const sharedKey = user ? userKey('michelin_shared_activities', user.id) : null;
 
   const persistAccount = useCallback((data: StravaAccount | null) => {
+    if (!stravaKey) return;
     if (data) {
-      localStorage.setItem(STRAVA_KEY, JSON.stringify(data));
+      localStorage.setItem(stravaKey, JSON.stringify(data));
     } else {
-      localStorage.removeItem(STRAVA_KEY);
+      localStorage.removeItem(stravaKey);
     }
     setAccount(data);
-  }, []);
+  }, [stravaKey]);
 
   useEffect(() => {
     if (!user || !token) {
       setAccount(null);
       setActivities([]);
       setLastSync(null);
+      setSharedActivityIds([]);
       setLoading(false);
+      userIdRef.current = null;
       return;
     }
 
-    const storedActivities = localStorage.getItem(STRAVA_ACTIVITIES_KEY);
+    const uid = user.id;
+    const sKey = userKey('michelin_hub_strava', uid);
+    const aKey = userKey('michelin_hub_strava_activities', uid);
+    const lKey = userKey('michelin_hub_strava_lastsync', uid);
+    const shKey = userKey('michelin_shared_activities', uid);
+
+    // Reset state when switching users
+    if (userIdRef.current !== uid) {
+      setAccount(null);
+      setActivities([]);
+      setLastSync(null);
+      setSharedActivityIds([]);
+      userIdRef.current = uid;
+    }
+
+    // Load user-scoped data
+    const storedActivities = localStorage.getItem(aKey);
     if (storedActivities) {
       try { setActivities(JSON.parse(storedActivities)); } catch { /* ignore */ }
+    } else {
+      setActivities([]);
     }
-    const storedLastSync = localStorage.getItem(STRAVA_LASTSYNC_KEY);
-    if (storedLastSync) setLastSync(storedLastSync);
 
-    const stored = localStorage.getItem(STRAVA_KEY);
+    const storedLastSync = localStorage.getItem(lKey);
+    setLastSync(storedLastSync || null);
+
+    const storedShared = localStorage.getItem(shKey);
+    if (storedShared) {
+      try { setSharedActivityIds(JSON.parse(storedShared)); } catch { setSharedActivityIds([]); }
+    } else {
+      setSharedActivityIds([]);
+    }
+
+    const stored = localStorage.getItem(sKey);
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as StravaAccount;
         setAccount(parsed);
         stravaRefreshToken(token)
           .then((res) => {
-            persistAccount({
+            const updated: StravaAccount = {
               stravaAccountId: res.stravaAccountId,
               athleteId: parsed.athleteId,
               scope: res.scope,
               tokenExpiresAt: res.tokenExpiresAt,
-            });
+            };
+            localStorage.setItem(sKey, JSON.stringify(updated));
+            setAccount(updated);
           })
-          .catch(() => {
-            // refresh failed but keep local state — user can reconnect if needed
-          })
+          .catch(() => {})
           .finally(() => setLoading(false));
       } catch {
-        localStorage.removeItem(STRAVA_KEY);
+        localStorage.removeItem(sKey);
         setLoading(false);
       }
     } else {
       stravaRefreshToken(token)
         .then((res) => {
-          persistAccount({
+          const acct: StravaAccount = {
             stravaAccountId: res.stravaAccountId,
             athleteId: 0,
             scope: res.scope,
             tokenExpiresAt: res.tokenExpiresAt,
-          });
+          };
+          localStorage.setItem(sKey, JSON.stringify(acct));
+          setAccount(acct);
         })
-        .catch(() => {
-          // 404 = not connected, which is fine
-        })
+        .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [user, token, persistAccount]);
+  }, [user, token]);
 
   const connect = useCallback(async () => {
     if (!token) throw new Error('Non authentifie');
@@ -116,17 +157,19 @@ export function StravaProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   const exchangeCode = useCallback(async (code: string) => {
-    if (!token) throw new Error('Non authentifie');
+    if (!token || !stravaKey) throw new Error('Non authentifie');
     setError(null);
     setLoading(true);
     try {
       const res = await stravaExchangeToken(token, code);
-      persistAccount({
+      const acct: StravaAccount = {
         stravaAccountId: res.stravaAccountId,
         athleteId: res.athleteId,
         scope: res.scope,
         tokenExpiresAt: res.tokenExpiresAt,
-      });
+      };
+      localStorage.setItem(stravaKey, JSON.stringify(acct));
+      setAccount(acct);
       localStorage.removeItem(STRAVA_PENDING_KEY);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur Strava';
@@ -135,57 +178,75 @@ export function StravaProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [token, persistAccount]);
+  }, [token, stravaKey]);
 
   const refresh = useCallback(async () => {
-    if (!token) return;
+    if (!token || !stravaKey) return;
     try {
       const res = await stravaRefreshToken(token);
-      persistAccount({
+      const updated: StravaAccount = {
         stravaAccountId: res.stravaAccountId,
         athleteId: account?.athleteId ?? 0,
         scope: res.scope,
         tokenExpiresAt: res.tokenExpiresAt,
-      });
+      };
+      localStorage.setItem(stravaKey, JSON.stringify(updated));
+      setAccount(updated);
     } catch {
-      // silent fail — token may still be valid
+      // silent fail
     }
-  }, [token, account, persistAccount]);
+  }, [token, account, stravaKey]);
 
   const syncActivities = useCallback(async (): Promise<StravaSyncResponse> => {
-    if (!token) throw new Error('Non authentifie');
+    if (!token || !activitiesKey || !lastSyncKey) throw new Error('Non authentifie');
     setError(null);
     setSyncing(true);
     try {
       const result = await stravaSyncActivities(token);
       setActivities(result.activities);
-      localStorage.setItem(STRAVA_ACTIVITIES_KEY, JSON.stringify(result.activities));
+      localStorage.setItem(activitiesKey, JSON.stringify(result.activities));
       const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
       setLastSync(now);
-      localStorage.setItem(STRAVA_LASTSYNC_KEY, now);
+      localStorage.setItem(lastSyncKey, now);
       return result;
     } finally {
       setSyncing(false);
     }
-  }, [token]);
+  }, [token, activitiesKey, lastSyncKey]);
 
   const disconnect = useCallback(async () => {
     if (token) {
       try {
         await stravaDisconnect(token);
-      } catch {
-        // continue with local cleanup even if backend call fails
-      }
+      } catch {}
     }
-    persistAccount(null);
+    if (stravaKey) localStorage.removeItem(stravaKey);
+    if (activitiesKey) localStorage.removeItem(activitiesKey);
+    if (lastSyncKey) localStorage.removeItem(lastSyncKey);
+    localStorage.removeItem(STRAVA_PENDING_KEY);
+    setAccount(null);
     setActivities([]);
     setLastSync(null);
-    localStorage.removeItem(STRAVA_PENDING_KEY);
-    localStorage.removeItem(STRAVA_ACTIVITIES_KEY);
-    localStorage.removeItem(STRAVA_LASTSYNC_KEY);
-  }, [token, persistAccount]);
+  }, [token, stravaKey, activitiesKey, lastSyncKey]);
 
   const clearError = useCallback(() => setError(null), []);
+
+  const shareActivity = useCallback((activityId: string) => {
+    setSharedActivityIds((prev) => {
+      if (prev.includes(activityId)) return prev;
+      const next = [...prev, activityId];
+      if (sharedKey) localStorage.setItem(sharedKey, JSON.stringify(next));
+      return next;
+    });
+  }, [sharedKey]);
+
+  const unshareActivity = useCallback((activityId: string) => {
+    setSharedActivityIds((prev) => {
+      const next = prev.filter((id) => id !== activityId);
+      if (sharedKey) localStorage.setItem(sharedKey, JSON.stringify(next));
+      return next;
+    });
+  }, [sharedKey]);
 
   return (
     <StravaContext.Provider value={{
@@ -196,12 +257,15 @@ export function StravaProvider({ children }: { children: ReactNode }) {
       loading,
       syncing,
       error,
+      sharedActivityIds,
       connect,
       exchangeCode,
       refresh,
       syncActivities,
       disconnect,
       clearError,
+      shareActivity,
+      unshareActivity,
     }}>
       {children}
     </StravaContext.Provider>

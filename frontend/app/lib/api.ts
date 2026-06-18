@@ -416,3 +416,82 @@ export async function destroyBike(id: number, token: string): Promise<void> {
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 }
+
+/* ── Comments & Likes ──────────────────────────────────────────────── */
+
+export interface ApiCommentAuthor {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+}
+
+export interface ApiComment {
+  id: number;
+  content: string;
+  createdAt: string;
+  author: ApiCommentAuthor;
+}
+
+export interface ApiLike {
+  id: number;
+  user: { id: number };
+}
+
+export async function getArticleComments(articleId: number): Promise<ApiComment[]> {
+  const data = await apiFetch<HydraCollection<ApiComment>>(
+    `/api/articles/${articleId}/comments?order%5BcreatedAt%5D=desc`,
+  );
+  return data.member;
+}
+
+export async function postComment(articleId: number, content: string, token: string): Promise<ApiComment> {
+  const res = await fetch(`${API_BASE_URL}/api/comments`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/ld+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify({ article: `/api/articles/${articleId}`, content }),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function deleteComment(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/comments/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
+
+export async function getArticleLikes(articleId: number): Promise<ApiLike[]> {
+  const data = await apiFetch<HydraCollection<ApiLike>>(
+    `/api/articles/${articleId}/likes`,
+  );
+  return data.member;
+}
+
+export async function postLike(articleId: number, token: string): Promise<ApiLike> {
+  const res = await fetch(`${API_BASE_URL}/api/article_likes`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/ld+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify({ article: `/api/articles/${articleId}` }),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function deleteLike(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/article_likes/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
