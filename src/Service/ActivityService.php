@@ -80,12 +80,28 @@ class ActivityService
 		$this->updateOngoingChallengeParticipations($user, $syncedActivities);
 		$this->entityManager->flush();
 
-		// Return the counts of synced, created, updated, and deleted activities
+		// Return the counts and the activity data
 		return [
 			'synced' => count($remoteActivities),
 			'created' => count($remoteActivities),
 			'updated' => 0,
 			'deleted' => $deleted,
+			'activities' => array_map(static fn (Activity $a) => [
+				'id' => $a->getId(),
+				'activityId' => $a->getActivityId(),
+				'name' => $a->getName(),
+				'distance' => $a->getDistance(),
+				'movingTime' => $a->getMovingTime(),
+				'elapsedTime' => $a->getElapsedTime(),
+				'totalElevationGain' => $a->getTotalElevationGain(),
+				'type' => $a->getType(),
+				'sportType' => $a->getSportType(),
+				'startedAt' => $a->getStartedAt()?->format(\DATE_ATOM),
+				'locationCity' => $a->getLocationCity(),
+				'locationCountry' => $a->getLocationCountry(),
+				'averageSpeed' => $a->getAverageSpeed(),
+				'maxSpeed' => $a->getMaxSpeed(),
+			], $syncedActivities),
 		];
 	}
 

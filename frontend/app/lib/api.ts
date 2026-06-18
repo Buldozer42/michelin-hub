@@ -144,12 +144,30 @@ export async function stravaRefreshToken(token: string): Promise<StravaRefreshRe
   return data as StravaRefreshResponse;
 }
 
+export interface SyncedActivity {
+  id: number;
+  activityId: string;
+  name: string;
+  distance: number;
+  movingTime: number;
+  elapsedTime: number;
+  totalElevationGain: number;
+  type: string;
+  sportType: string;
+  startedAt: string;
+  locationCity: string | null;
+  locationCountry: string | null;
+  averageSpeed: number;
+  maxSpeed: number;
+}
+
 export interface StravaSyncResponse {
   message: string;
   synced: number;
   created: number;
   updated: number;
   deleted: number;
+  activities: SyncedActivity[];
 }
 
 export async function stravaSyncActivities(token: string): Promise<StravaSyncResponse> {
