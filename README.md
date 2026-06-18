@@ -85,6 +85,14 @@ Sans Symfony CLI:
 php -S 127.0.0.1:8000 -t public
 ```
 
+Frontend (React) dans le dossier `frontend`:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ## Lancement avec Docker Compose PostgreSQL
 
 Le fichier `compose.yaml` fournit un service PostgreSQL.

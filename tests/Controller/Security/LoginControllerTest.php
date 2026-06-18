@@ -197,8 +197,14 @@ class LoginControllerTest extends TestCase
 		self::assertSame(
 			[
 				'token' => 'jwt-token',
-				'roles' => ['ROLE_ADMIN', 'ROLE_USER'],
-				'userId' => 42,
+				'user' => [
+					'id' => 42,
+					'firstName' => null,
+					'lastName' => null,
+					'username' => 'jdoe',
+					'email' => 'john.doe@mail.com',
+					'roles' => ['ROLE_ADMIN', 'ROLE_USER'],
+				],
 			],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
@@ -266,8 +272,14 @@ class LoginControllerTest extends TestCase
 		self::assertSame(
 			[
 				'token' => 'jwt-token-username',
-				'roles' => ['ROLE_USER'],
-				'userId' => 7,
+				'user' => [
+					'id' => 7,
+					'firstName' => null,
+					'lastName' => null,
+					'username' => 'jdoe',
+					'email' => 'john.doe@mail.com',
+					'roles' => ['ROLE_USER'],
+				],
 			],
 			json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR)
 		);
