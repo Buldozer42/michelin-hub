@@ -1,6 +1,20 @@
 #!/bin/sh
 set -e
 
+echo "🔐 Checking JWT keys..."
+
+mkdir -p config/jwt
+
+if [ ! -f config/jwt/private.pem ]; then
+  echo "Generating JWT keys..."
+
+  # génération clé privée
+  openssl genrsa -out config/jwt/private.pem -aes256 4096
+
+  # génération clé publique
+  openssl rsa -pubout -in config/jwt/private.pem -out config/jwt/public.pem
+fi
+
 echo "Running migrations..."
 php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 
