@@ -4,6 +4,7 @@ namespace App\DataFixtures;
 
 use App\Entity\Challenge;
 use App\Entity\Objective;
+use App\Entity\Reward;
 use App\Enum\ObjectiveType;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -37,6 +38,12 @@ class ChallengeFixtures extends Fixture implements OrderedFixtureInterface
                 ->setDescription($this->faker->sentence(6))
                 ->setStartDate($startDate->modify("+$i days"))
                 ->setEndDate($endDate);
+            $reward = new Reward();
+            $reward->setName($this->faker->unique()->word())
+                ->setDescription($this->faker->sentence(6))
+                ->setImage("https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")
+            ;
+            $challenge->setReward($reward);
 
             // Add 3 objectives to each challenge
             for ($j = 0; $j < 3; $j++) {

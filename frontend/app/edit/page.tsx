@@ -6,6 +6,7 @@ import {
   getArticles,
   getCategories,
   getTags,
+  getChallenges,
   createArticle,
   updateArticle,
   deleteArticle,
@@ -15,14 +16,19 @@ import {
   createTag,
   updateTag,
   deleteTag,
+  createChallenge,
+  updateChallenge,
+  deleteChallenge,
   type ApiArticle,
   type ApiCategory,
   type ApiTag,
+  type ApiChallenge,
+  type ChallengeObjectiveType,
 } from "../lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type EditTab = "articles" | "categories" | "tags";
+type EditTab = "home" | "articles" | "categories" | "tags" | "challenges";
 type Status = { message: string; error: boolean } | null;
 
 // ── Utilities ────────────────────────────────────────────────────────────────
@@ -859,16 +865,542 @@ function TagsTab() {
   );
 }
 
+// ── Challenges tab ───────────────────────────────────────────────────────────
+
+const OBJECTIVE_OPTIONS: { value: ChallengeObjectiveType; label: string }[] = [
+  { value: "distance", label: "Distance" },
+  { value: "elevation", label: "Dénivelé" },
+  { value: "frenquency", label: "Fréquence" },
+  { value: "duration", label: "Durée" },
+];
+
+type ChallengeFormObjective = {
+  type: ChallengeObjectiveType;
+  value: number;
+};
+
+const EMPTY_OBJECTIVE: ChallengeFormObjective = { type: "distance", value: 0 };
+
+const EMPTY_CHALLENGE = {
+  id: null as number | null,
+  title: "",
+  description: "",
+  startDate: "",
+  endDate: "",
+  objectives: [EMPTY_OBJECTIVE] as ChallengeFormObjective[],
+  rewardName: "",
+  rewardDescription: "",
+  rewardImage: "",
+};
+
+function ChallengesTab() {
+  const [challenges, setChallenges] = useState<ApiChallenge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<Status>(null);
+  const [form, setForm] = useState(EMPTY_CHALLENGE);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      setChallenges(await getChallenges());
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  function patch<K extends keyof typeof EMPTY_CHALLENGE>(
+    key: K,
+    value: (typeof EMPTY_CHALLENGE)[K]
+  ) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleEdit(challenge: ApiChallenge) {
+    const objectives =
+      challenge.objectives.length > 0
+        ? challenge.objectives.map((obj) => ({ type: obj.type, value: obj.value }))
+        : [EMPTY_OBJECTIVE];
+
+    setForm({
+      id: challenge.id,
+      title: challenge.title,
+      description: challenge.description ?? "",
+      startDate: challenge.startDate ? challenge.startDate.slice(0, 16) : "",
+      endDate: challenge.endDate ? challenge.endDate.slice(0, 16) : "",
+      objectives,
+      rewardName: challenge.reward?.name ?? "",
+      rewardDescription: challenge.reward?.description ?? "",
+      rewardImage: challenge.reward?.image ?? "",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleReset() {
+    setForm(EMPTY_CHALLENGE);
+    setStatus(null);
+  }
+
+  function addObjective() {
+    setForm((f) => ({ ...f, objectives: [...f.objectives, { ...EMPTY_OBJECTIVE }] }));
+  }
+
+  function removeObjective(index: number) {
+    setForm((f) => {
+      if (f.objectives.length <= 1) return f;
+      return {
+        ...f,
+        objectives: f.objectives.filter((_, i) => i !== index),
+      };
+    });
+  }
+
+  function patchObjective(index: number, patch: Partial<ChallengeFormObjective>) {
+    setForm((f) => ({
+      ...f,
+      objectives: f.objectives.map((objective, i) =>
+        i === index ? { ...objective, ...patch } : objective
+      ),
+    }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (form.objectives.length === 0) {
+      setStatus({ message: "Ajoutez au moins un objectif.", error: true });
+      return;
+    }
+
+    const payload = {
+      title: form.title,
+      description: form.description || null,
+      startDate: new Date(form.startDate).toISOString(),
+      endDate: new Date(form.endDate).toISOString(),
+      objectives: form.objectives.map((objective) => ({
+        type: objective.type,
+        value: objective.value,
+      })),
+      reward: form.rewardName
+        ? {
+            name: form.rewardName,
+            description: form.rewardDescription || null,
+            image: form.rewardImage || null,
+          }
+        : undefined,
+    };
+
+    try {
+      if (form.id) {
+        await updateChallenge(form.id, payload);
+        setStatus({ message: `Challenge "${form.title}" mis à jour.`, error: false });
+      } else {
+        await createChallenge(payload);
+        setStatus({ message: `Challenge "${form.title}" créé.`, error: false });
+        handleReset();
+      }
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  async function handleDelete(id: number, title: string, startDate: string) {
+    const hasStarted = new Date(startDate).getTime() <= Date.now();
+    if (hasStarted) {
+      setStatus({
+        message: `Le challenge "${title}" a deja commence et ne peut plus etre supprime.`,
+        error: true,
+      });
+      return;
+    }
+
+    if (!confirm(`Supprimer le challenge "${title}" ?`)) return;
+
+    try {
+      await deleteChallenge(id);
+      setStatus({ message: `Challenge "${title}" supprime.`, error: false });
+      if (form.id === id) handleReset();
+      await loadData();
+    } catch (e) {
+      setStatus({ message: String(e), error: true });
+    }
+  }
+
+  return (
+    <div className="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 className="font-black text-[#000c34] text-lg mb-1">
+          {form.id ? `Modifier le challenge #${form.id}` : "Nouveau challenge"}
+        </h2>
+        {form.id && <p className="text-xs text-gray-400 mb-4">{form.title}</p>}
+        {!form.id && <div className="mb-4" />}
+        <StatusBar status={status} />
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Titre *">
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => patch("title", e.target.value)}
+              className={CX.input}
+              placeholder="Challenge de la semaine"
+            />
+          </Field>
+
+          <Field label="Description">
+            <textarea
+              value={form.description}
+              onChange={(e) => patch("description", e.target.value)}
+              rows={4}
+              className={CX.input}
+              placeholder="Objectif et contexte du challenge…"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Début *">
+              <input
+                type="datetime-local"
+                required
+                value={form.startDate}
+                onChange={(e) => patch("startDate", e.target.value)}
+                className={CX.input}
+              />
+            </Field>
+
+            <Field label="Fin *">
+              <input
+                type="datetime-local"
+                required
+                value={form.endDate}
+                onChange={(e) => patch("endDate", e.target.value)}
+                className={CX.input}
+              />
+            </Field>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black text-gray-500 uppercase tracking-wide">Objectifs *</p>
+              <button
+                type="button"
+                onClick={addObjective}
+                className="px-2.5 py-1 text-xs font-semibold text-[#27509b] border border-[#27509b]/30 rounded-lg hover:bg-[#27509b]/5 transition-colors"
+              >
+                + Ajouter un objectif
+              </button>
+            </div>
+
+            {form.objectives.map((objective, index) => (
+              <div key={index} className="grid grid-cols-[1fr_120px_auto] gap-3 items-end">
+                <Field label={`Type #${index + 1}`}>
+                  <select
+                    value={objective.type}
+                    onChange={(e) =>
+                      patchObjective(index, { type: e.target.value as ChallengeObjectiveType })
+                    }
+                    className={CX.input}
+                  >
+                    {OBJECTIVE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label={`Valeur #${index + 1}`}>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    required
+                    value={objective.value}
+                    onChange={(e) => patchObjective(index, { value: parseFloat(e.target.value) || 0 })}
+                    className={CX.input}
+                  />
+                </Field>
+
+                <button
+                  type="button"
+                  onClick={() => removeObjective(index)}
+                  disabled={form.objectives.length <= 1}
+                  className="h-10 px-3 text-xs font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Suppr.
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <Field label="Récompense (nom)">
+            <input
+              type="text"
+              value={form.rewardName}
+              onChange={(e) => patch("rewardName", e.target.value)}
+              className={CX.input}
+              placeholder="Médaille finisher"
+            />
+          </Field>
+
+          <Field label="Récompense (description)">
+            <textarea
+              value={form.rewardDescription}
+              onChange={(e) => patch("rewardDescription", e.target.value)}
+              rows={2}
+              className={CX.input}
+              placeholder="Description de la récompense…"
+            />
+          </Field>
+
+          <Field label="Récompense (image URL)">
+            <input
+              type="text"
+              value={form.rewardImage}
+              onChange={(e) => patch("rewardImage", e.target.value)}
+              className={CX.input}
+              placeholder="https://…"
+            />
+          </Field>
+
+          <div className="flex gap-2 pt-2">
+            <button type="submit" className={CX.btnPrimary}>
+              {form.id ? "Enregistrer" : "Créer le challenge"}
+            </button>
+            {form.id && (
+              <button type="button" onClick={handleReset} className={CX.btnGhost}>
+                Annuler
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <h2 className="font-black text-[#000c34] text-lg">Challenges</h2>
+          <span className="text-sm font-semibold text-gray-400">({challenges.length})</span>
+        </div>
+
+        {loading ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Chargement…</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className={CX.th}>Titre / Slug</th>
+                  <th className={CX.th}>Objectif</th>
+                  <th className={CX.th}>Période</th>
+                  <th className={CX.th}>Récompense</th>
+                  <th className={CX.th} />
+                </tr>
+              </thead>
+              <tbody>
+                {challenges.length === 0 ? (
+                  <EmptyRow cols={5} message="Aucun challenge pour l'instant." />
+                ) : (
+                  challenges.map((challenge) => {
+                    return (
+                      <tr
+                        key={challenge.id}
+                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                          form.id === challenge.id ? "bg-blue-50" : ""
+                        }`}
+                      >
+                        <td className={CX.td}>
+                          <div className="font-semibold text-[#000c34] leading-tight">
+                            {challenge.title}
+                          </div>
+                          <div className="text-gray-400 text-xs mt-0.5 font-mono">/{challenge.slug}</div>
+                        </td>
+                        <td className={CX.td}>
+                          {challenge.objectives.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {challenge.objectives.map((objective, index) => (
+                                <span
+                                  key={`${challenge.id}-${objective.type}-${index}`}
+                                  className="inline-block bg-[#27509b]/10 text-[#27509b] text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                >
+                                  {objective.type} · {objective.value}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className={`${CX.td} text-gray-400 text-xs whitespace-nowrap`}>
+                          <div>{fmtDate(challenge.startDate)}</div>
+                          <div>→ {fmtDate(challenge.endDate)}</div>
+                        </td>
+                        <td className={`${CX.td} text-gray-500 text-xs max-w-[220px]`}>
+                          {challenge.reward?.name ?? <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className={`${CX.td} whitespace-nowrap`}>
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEdit(challenge)} className={CX.btnEdit}>
+                              Modifier
+                            </button>
+                            <button
+                              onClick={() => handleDelete(challenge.id, challenge.title, challenge.startDate)}
+                              className={CX.btnDelete}
+                              title="Suppression possible uniquement avant la date de debut"
+                            >
+                              Suppr.
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Home tab ─────────────────────────────────────────────────────────────────
+
+function HomeTab({ onGoTo }: { onGoTo: (tab: Exclude<EditTab, "home">) => void }) {
+  const [counts, setCounts] = useState({ articles: 0, categories: 0, tags: 0, challenges: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCounts() {
+      try {
+        const [articles, categories, tags, challenges] = await Promise.all([
+          getArticles(),
+          getCategories(),
+          getTags(),
+          getChallenges(),
+        ]);
+        if (!mounted) return;
+        setCounts({
+          articles: articles.length,
+          categories: categories.length,
+          tags: tags.length,
+          challenges: challenges.length,
+        });
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadCounts();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const cards: {
+    id: Exclude<EditTab, "home">;
+    title: string;
+    subtitle: string;
+    count: number;
+    cta: string;
+  }[] = [
+    {
+      id: "articles",
+      title: "Articles",
+      subtitle: "Rédiger, publier et mettre à jour vos contenus.",
+      count: counts.articles,
+      cta: "Gérer les articles",
+    },
+    {
+      id: "categories",
+      title: "Catégories",
+      subtitle: "Structurer le blog et organiser les thématiques.",
+      count: counts.categories,
+      cta: "Gérer les catégories",
+    },
+    {
+      id: "tags",
+      title: "Tags",
+      subtitle: "Affiner le classement avec des mots-clés.",
+      count: counts.tags,
+      cta: "Gérer les tags",
+    },
+    {
+      id: "challenges",
+      title: "Challenges",
+      subtitle: "Créer et mettre à jour les défis sportifs de la communauté.",
+      count: counts.challenges,
+      cta: "Gérer les challenges",
+    },
+  ];
+
+  return (
+    <section className="grid gap-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 md:p-8">
+        <p className="text-xs font-black uppercase tracking-widest text-michelin-blue mb-2">
+          Espace édition
+        </p>
+        <h2 className="text-2xl md:text-3xl font-black text-michelin-navy leading-tight">
+          Bienvenue sur la console de gestion du contenu
+        </h2>
+        <p className="mt-3 text-sm md:text-base text-gray-500 max-w-3xl">
+          Sélectionnez un module pour commencer. Cette page sert de point d’entrée afin de
+          naviguer rapidement entre les contenus, les catégories et les tags.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <article
+            key={card.id}
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex flex-col"
+          >
+            <p className="text-xs uppercase tracking-wide text-gray-400 font-black">Module</p>
+            <h3 className="mt-1 text-lg font-black text-michelin-navy">{card.title}</h3>
+            <p className="mt-2 text-sm text-gray-500 min-h-10">{card.subtitle}</p>
+
+            <div className="mt-4 inline-flex items-baseline gap-1">
+              <span className="text-3xl font-black text-michelin-blue">
+                {loading ? "…" : card.count}
+              </span>
+              <span className="text-xs uppercase tracking-wide text-gray-400">éléments</span>
+            </div>
+
+            <button
+              onClick={() => onGoTo(card.id)}
+              className="mt-6 w-full px-4 py-2.5 rounded-xl bg-michelin-blue text-white text-sm font-black hover:bg-[#1a3d7c] transition-colors"
+            >
+              {card.cta}
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const TABS: { id: EditTab; label: string }[] = [
+  { id: "home", label: "Home" },
   { id: "articles", label: "Articles" },
   { id: "categories", label: "Catégories" },
   { id: "tags", label: "Tags" },
+  { id: "challenges", label: "Challenges" },
 ];
 
 export default function EditPage() {
-  const [activeTab, setActiveTab] = useState<EditTab>("articles");
+  const [activeTab, setActiveTab] = useState<EditTab>("home");
 
   return (
     <div className="min-h-screen bg-[#f0f0f0]">
@@ -916,9 +1448,11 @@ export default function EditPage() {
           ))}
         </div>
 
+        {activeTab === "home" && <HomeTab onGoTo={setActiveTab} />}
         {activeTab === "articles" && <ArticlesTab />}
         {activeTab === "categories" && <CategoriesTab />}
         {activeTab === "tags" && <TagsTab />}
+        {activeTab === "challenges" && <ChallengesTab />}
       </div>
     </div>
   );

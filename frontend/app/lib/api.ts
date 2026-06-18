@@ -26,12 +26,40 @@ export interface ApiArticle {
   tags: ApiTag[];
 }
 
+export type ChallengeObjectiveType = "distance" | "elevation" | "frenquency" | "duration";
+
+export interface ApiChallengeObjective {
+  id: number;
+  type: ChallengeObjectiveType;
+  value: number;
+}
+
+export interface ApiChallengeReward {
+  id: number;
+  name: string;
+  description: string | null;
+  image: string | null;
+}
+
+export interface ApiChallenge {
+  id: number;
+  title: string;
+  slug: string;
+  description: string | null;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  objectives: ApiChallengeObjective[];
+  reward: ApiChallengeReward | null;
+}
+
 interface HydraCollection<T> {
   member: T[];
   totalItems: number;
 }
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const AUTH_TOKEN_KEY = "michelin_hub_token";
 
 /* ── Auth types ─────────────────────────────────────────────────────── */
 
@@ -160,6 +188,15 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json();
 }
 
+function getStoredAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return {};
+
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function getArticles(): Promise<ApiArticle[]> {
   const data = await apiFetch<HydraCollection<ApiArticle>>(
     "/api/articles?order%5BpublishedAt%5D=desc"
@@ -184,10 +221,19 @@ export async function getTags(): Promise<ApiTag[]> {
   return data.member;
 }
 
+export async function getChallenges(): Promise<ApiChallenge[]> {
+  const data = await apiFetch<HydraCollection<ApiChallenge>>("/api/challenges");
+  return data.member;
+}
+
 async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json"): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { Accept: "application/ld+json", "Content-Type": ct },
+    headers: {
+      Accept: "application/ld+json",
+      "Content-Type": ct,
+      ...getStoredAuthHeaders(),
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -197,7 +243,11 @@ async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json
 async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",
-    headers: { Accept: "application/ld+json", "Content-Type": "application/merge-patch+json" },
+    headers: {
+      Accept: "application/ld+json",
+      "Content-Type": "application/merge-patch+json",
+      ...getStoredAuthHeaders(),
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -205,7 +255,12 @@ async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function apiDelete(path: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE" });
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: {
+      ...getStoredAuthHeaders(),
+    },
+  });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 }
 
@@ -259,6 +314,37 @@ export async function updateTag(id: number, data: Partial<TagPayload>): Promise<
 
 export async function deleteTag(id: number): Promise<void> {
   return apiDelete(`/api/tags/${id}`);
+}
+
+export type ChallengePayload = {
+  title: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  objectives: {
+    type: ChallengeObjectiveType;
+    value: number;
+  }[];
+  reward?: {
+    name: string;
+    description?: string | null;
+    image?: string | null;
+  } | null;
+};
+
+export async function createChallenge(data: ChallengePayload): Promise<ApiChallenge> {
+  return apiPost("/api/challenges", data);
+}
+
+export async function updateChallenge(
+  id: number,
+  data: Partial<ChallengePayload>
+): Promise<ApiChallenge> {
+  return apiPatch(`/api/challenges/${id}`, data);
+}
+
+export async function deleteChallenge(id: number): Promise<void> {
+  return apiDelete(`/api/challenges/${id}`);
 }
 
 /* ── Bike types & API ──────────────────────────────────────────────── */
