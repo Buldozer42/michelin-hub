@@ -14,12 +14,12 @@ class UserFixtures extends Fixture implements OrderedFixtureInterface
     private $faker;
     private $passwordHasher;
 
-    public function __construct (UserPasswordHasherInterface $userPasswordHasherInterface) 
+    public function __construct (UserPasswordHasherInterface $userPasswordHasherInterface)
     {
         $this->faker = FakerFactory::create('fr_FR');
         $this->passwordHasher = $userPasswordHasherInterface;
     }
-    
+
     public function load(ObjectManager $manager): void
     {
         for ($i = 0; $i < 10; $i++) {
@@ -34,6 +34,16 @@ class UserFixtures extends Fixture implements OrderedFixtureInterface
             ;
             $manager->persist($user);
         }
+        $userAdmin = new User();
+        $userAdmin->setFirstName('Admin')
+            ->setLastName('Admin')
+            ->setEmail('admin@example.com')
+            ->setUsername('admin')
+            ->setPassword('admin')
+            ->setRoles(['ROLE_USER','ROLE_ADMIN'])
+            ->hashUserPassword($this->passwordHasher)
+        ;
+        $manager->persist($userAdmin);
         $manager->flush();
     }
 
