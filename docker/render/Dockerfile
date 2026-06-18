@@ -1,17 +1,37 @@
 FROM php:8.3-cli
 
+# System dependencies
 RUN apt-get update && apt-get install -y \
-    git unzip libicu-dev libzip-dev libpq-dev libxml2-dev \
-    && docker-php-ext-install intl zip pdo_pgsql opcache xml
+    git \
+    unzip \
+    libicu-dev \
+    libzip-dev \
+    libpq-dev \
+    libxml2-dev \
+    && docker-php-ext-install \
+    intl \
+    zip \
+    pdo_pgsql \
+    opcache \
+    xml
 
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Copy project
 COPY . .
 
+# Install dependencies WITHOUT Symfony auto-scripts (IMPORTANT FIX)
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
+# Ensure cache is clean + warm (fix API Platform crash)
+RUN php bin/console cache:clear --env=prod || true \
+    && php bin/console cache:warmup --env=prod || true
+
+# Render uses dynamic port
 EXPOSE 10000
 
+# Start server (Render injects $PORT)
 CMD php -S 0.0.0.0:$PORT -t public
