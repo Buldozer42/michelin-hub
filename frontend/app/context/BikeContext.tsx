@@ -2,20 +2,26 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import {
+  ApiBike,
+  BikeTypeValue,
+  getBikes,
+  createBike,
+  patchBike,
+  destroyBike,
+  BikeCreatePayload,
+} from '../lib/api';
 
-export type BikeType = 'ROUTE' | 'VTT' | 'GRAVEL' | 'CYCLOCROSS' | 'URBAIN' | 'E-BIKE';
+export type BikeType = BikeTypeValue;
 
-export const BIKE_TYPES: {
-  value: BikeType;
-  label: string;
-  description: string;
-}[] = [
-  { value: 'ROUTE',     label: 'Route',       description: 'Vitesse et performance sur asphalte' },
-  { value: 'VTT',       label: 'VTT',         description: 'Trails et sentiers en montagne' },
-  { value: 'GRAVEL',    label: 'Gravel',       description: 'Route et chemins de terre' },
-  { value: 'CYCLOCROSS',label: 'Cyclo-cross',  description: 'Polyvalence tous terrains' },
-  { value: 'URBAIN',    label: 'Urbain',       description: 'Mobilité et confort en ville' },
-  { value: 'E-BIKE',    label: 'E-Bike',       description: 'Assistance électrique intégrée' },
+export const BIKE_TYPES: { value: BikeType; label: string; description: string }[] = [
+  { value: 'road',      label: 'Route',     description: 'Vitesse et performance sur asphalte' },
+  { value: 'mountain',  label: 'VTT',       description: 'Trails et sentiers en montagne' },
+  { value: 'gravel',    label: 'Gravel',    description: 'Route et chemins de terre' },
+  { value: 'urban',     label: 'Urbain',    description: 'Mobilité et confort en ville' },
+  { value: 'electric',  label: 'E-Bike',    description: 'Assistance électrique intégrée' },
+  { value: 'bmx',       label: 'BMX',       description: 'Figures, freestyle et pump track' },
+  { value: 'triathlon', label: 'Triathlon', description: 'Performance aérodynamique race' },
 ];
 
 export interface Bike {
@@ -23,10 +29,11 @@ export interface Bike {
   name: string;
   brand?: string;
   model?: string;
-  type: BikeType;
-  weight?: number;         // kg (float)
-  purchaseDate?: string;   // ISO date
-  totalDistance: number;   // km (float)
+  bikeType: BikeType;
+  weight?: number;
+  purchaseDate?: string;
+  totalDistance: number;
+  imageUrl?: string;
 }
 
 interface BikeContextType {
@@ -35,76 +42,96 @@ interface BikeContextType {
   activeBikeId: number | null;
   loaded: boolean;
   setActiveBikeId: (id: number) => void;
-  addBike: (data: Omit<Bike, 'id'>) => Bike;
-  updateBike: (id: number, updates: Partial<Omit<Bike, 'id'>>) => void;
-  deleteBike: (id: number) => void;
+  addBike: (data: Omit<Bike, 'id'>) => Promise<Bike>;
+  updateBike: (id: number, updates: Partial<Omit<Bike, 'id'>>) => Promise<void>;
+  deleteBike: (id: number) => Promise<void>;
 }
 
 const BikeContext = createContext<BikeContextType | null>(null);
 
-export function BikeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const userId = user?.id ?? null;
+function fromApi(b: ApiBike): Bike {
+  return {
+    id: b.id,
+    name: b.name,
+    brand: b.brand ?? undefined,
+    model: b.model ?? undefined,
+    bikeType: b.bikeType,
+    weight: b.weight ?? undefined,
+    purchaseDate: b.purchaseDate ? b.purchaseDate.slice(0, 10) : undefined,
+    totalDistance: b.totalDistance,
+    imageUrl: b.imageUrl ?? undefined,
+  };
+}
 
+export function BikeProvider({ children }: { children: ReactNode }) {
+  const { token } = useAuth();
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [activeBikeId, setActiveBikeIdState] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Load from localStorage when user changes
   useEffect(() => {
-    if (!userId) {
+    if (!token) {
       setBikes([]);
       setActiveBikeIdState(null);
       setLoaded(false);
       return;
     }
-    const key = `michelin_hub_bikes_${userId}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setBikes(parsed.bikes ?? []);
-        setActiveBikeIdState(parsed.activeBikeId ?? null);
-      } catch { /* ignore corrupted data */ }
-    } else {
-      setBikes([]);
-      setActiveBikeIdState(null);
-    }
-    setLoaded(true);
-  }, [userId]);
-
-  // Persist on every change
-  useEffect(() => {
-    if (!userId || !loaded) return;
-    const key = `michelin_hub_bikes_${userId}`;
-    localStorage.setItem(key, JSON.stringify({ bikes, activeBikeId }));
-  }, [bikes, activeBikeId, userId, loaded]);
+    setLoaded(false);
+    getBikes(token)
+      .then(list => {
+        const local = list.map(fromApi);
+        setBikes(local);
+        setActiveBikeIdState(prev => local.find(b => b.id === prev)?.id ?? local[0]?.id ?? null);
+      })
+      .catch(() => setBikes([]))
+      .finally(() => setLoaded(true));
+  }, [token]);
 
   const setActiveBikeId = (id: number) => setActiveBikeIdState(id);
 
-  const addBike = (data: Omit<Bike, 'id'>): Bike => {
-    const newBike: Bike = { ...data, id: Date.now() };
-    setBikes(prev => [...prev, newBike]);
-    setActiveBikeIdState(newBike.id);
-    return newBike;
+  const addBike = async (data: Omit<Bike, 'id'>): Promise<Bike> => {
+    if (!token) throw new Error('Non authentifié');
+    const payload: BikeCreatePayload = {
+      name: data.name,
+      brand: data.brand ?? null,
+      model: data.model ?? null,
+      bikeType: data.bikeType,
+      weight: data.weight ?? null,
+      purchaseDate: data.purchaseDate ?? null,
+      totalDistance: data.totalDistance,
+    };
+    const created = await createBike(payload, token);
+    const local = fromApi(created);
+    setBikes(prev => [...prev, local]);
+    setActiveBikeIdState(local.id);
+    return local;
   };
 
-  const updateBike = (id: number, updates: Partial<Omit<Bike, 'id'>>) => {
-    setBikes(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  const updateBike = async (id: number, updates: Partial<Omit<Bike, 'id'>>): Promise<void> => {
+    if (!token) throw new Error('Non authentifié');
+    const payload: Partial<BikeCreatePayload> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if ('brand' in updates) payload.brand = updates.brand ?? null;
+    if ('model' in updates) payload.model = updates.model ?? null;
+    if (updates.bikeType !== undefined) payload.bikeType = updates.bikeType;
+    if ('weight' in updates) payload.weight = updates.weight ?? null;
+    if ('purchaseDate' in updates) payload.purchaseDate = updates.purchaseDate ?? null;
+    if (updates.totalDistance !== undefined) payload.totalDistance = updates.totalDistance;
+    const updated = await patchBike(id, payload, token);
+    setBikes(prev => prev.map(b => (b.id === id ? fromApi(updated) : b)));
   };
 
-  const deleteBike = (id: number) => {
+  const deleteBike = async (id: number): Promise<void> => {
+    if (!token) throw new Error('Non authentifié');
+    await destroyBike(id, token);
     setBikes(prev => {
       const next = prev.filter(b => b.id !== id);
-      if (activeBikeId === id) {
-        setActiveBikeIdState(next[0]?.id ?? null);
-      }
+      if (activeBikeId === id) setActiveBikeIdState(next[0]?.id ?? null);
       return next;
     });
   };
 
-  const activeBike =
-    bikes.find(b => b.id === activeBikeId) ?? bikes[0] ?? null;
+  const activeBike = bikes.find(b => b.id === activeBikeId) ?? bikes[0] ?? null;
 
   return (
     <BikeContext.Provider

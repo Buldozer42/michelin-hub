@@ -21,8 +21,8 @@ export default function OnboardingPage() {
     if (bikesLoaded && bikes.length > 0) router.replace('/velo');
   }, [bikes, bikesLoaded, router]);
 
-  function handleSave(data: Omit<Bike, 'id'>) {
-    addBike(data);
+  async function handleSave(data: Omit<Bike, 'id'>) {
+    await addBike(data);
     router.replace('/velo');
   }
 

@@ -118,7 +118,7 @@ function TireCard({ tire }: { tire: typeof TIRE_FRONT }) {
 
 /* ─── Bike selector pill ─────────────────────────────────────── */
 function BikePill({ bike, active, onClick }: { bike: Bike; active: boolean; onClick: () => void }) {
-  const typeLabel = BIKE_TYPES.find(t => t.value === bike.type)?.label ?? bike.type;
+  const typeLabel = BIKE_TYPES.find(t => t.value === bike.bikeType)?.label ?? bike.bikeType;
   return (
     <button
       onClick={onClick}
@@ -215,8 +215,8 @@ export default function MonVeloPage() {
   }
 
   const bike = activeBike!;
-  const typeLabel = BIKE_TYPES.find(t => t.value === bike.type)?.label ?? bike.type;
-  const isEbike = bike.type === 'E-BIKE';
+  const typeLabel = BIKE_TYPES.find(t => t.value === bike.bikeType)?.label ?? bike.bikeType;
+  const isEbike = bike.bikeType === 'electric';
 
   /* ── Eco impact calculated from the bike's real total distance ── */
   const ecoImpact = {
@@ -431,7 +431,7 @@ export default function MonVeloPage() {
 
       {showAddForm && (
         <BikeForm
-          onSave={(data) => { addBike(data); setShowAddForm(false); }}
+          onSave={async (data) => { await addBike(data); setShowAddForm(false); }}
           onClose={() => setShowAddForm(false)}
           asModal
         />
@@ -440,7 +440,7 @@ export default function MonVeloPage() {
       {editingBike && (
         <BikeForm
           bike={editingBike}
-          onSave={(data) => { updateBike(editingBike.id, data); setEditingBike(null); }}
+          onSave={async (data) => { await updateBike(editingBike.id, data); setEditingBike(null); }}
           onClose={() => setEditingBike(null)}
           asModal
         />
@@ -449,7 +449,7 @@ export default function MonVeloPage() {
       {deletingBike && (
         <DeleteConfirm
           bike={deletingBike}
-          onConfirm={() => { deleteBike(deletingBike.id); setDeletingBike(null); }}
+          onConfirm={async () => { await deleteBike(deletingBike.id); setDeletingBike(null); }}
           onCancel={() => setDeletingBike(null)}
         />
       )}

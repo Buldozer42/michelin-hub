@@ -204,3 +204,98 @@ export async function updateTag(id: number, data: Partial<TagPayload>): Promise<
 export async function deleteTag(id: number): Promise<void> {
   return apiDelete(`/api/tags/${id}`);
 }
+
+/* ── Bike types & API ──────────────────────────────────────────────── */
+
+export type BikeTypeValue =
+  | 'road'
+  | 'mountain'
+  | 'gravel'
+  | 'urban'
+  | 'electric'
+  | 'bmx'
+  | 'triathlon';
+
+export interface ApiBike {
+  id: number;
+  name: string;
+  brand: string | null;
+  model: string | null;
+  bikeType: BikeTypeValue;
+  weight: number | null;
+  purchaseDate: string | null;
+  totalDistance: number;
+  imageUrl: string | null;
+  createdAt: string;
+  retiredAt: string | null;
+}
+
+export type BikeCreatePayload = {
+  name: string;
+  brand?: string | null;
+  model?: string | null;
+  bikeType: BikeTypeValue;
+  weight?: number | null;
+  purchaseDate?: string | null;
+  totalDistance?: number;
+};
+
+function bearerHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function apiBikeError(res: Response): Promise<never> {
+  const body = await res.json().catch(() => ({}));
+  const msg =
+    (body as Record<string, string>)['hydra:description'] ??
+    (body as Record<string, string>)['detail'] ??
+    `${res.status} ${res.statusText}`;
+  throw new Error(msg);
+}
+
+export async function getBikes(token: string): Promise<ApiBike[]> {
+  const data = await apiFetch<HydraCollection<ApiBike>>('/api/bikes', {
+    headers: bearerHeaders(token),
+  });
+  return data.member;
+}
+
+export async function createBike(payload: BikeCreatePayload, token: string): Promise<ApiBike> {
+  const res = await fetch(`${API_BASE_URL}/api/bikes`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/ld+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function patchBike(
+  id: number,
+  payload: Partial<BikeCreatePayload>,
+  token: string,
+): Promise<ApiBike> {
+  const res = await fetch(`${API_BASE_URL}/api/bikes/${id}`, {
+    method: 'PATCH',
+    headers: {
+      Accept: 'application/ld+json',
+      'Content-Type': 'application/merge-patch+json',
+      ...bearerHeaders(token),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return apiBikeError(res);
+  return res.json();
+}
+
+export async function destroyBike(id: number, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/bikes/${id}`, {
+    method: 'DELETE',
+    headers: bearerHeaders(token),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}

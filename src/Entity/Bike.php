@@ -66,7 +66,7 @@ class Bike
 
     /** Cached total distance in km, updated on each Strava activity sync. */
     #[ORM\Column]
-    #[Groups(['bike:read'])]
+    #[Groups(['bike:read', 'bike:write'])]
     private float $totalDistance = 0.0;
 
     #[ORM\Column(length: 255, nullable: true)]

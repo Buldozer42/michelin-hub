@@ -6,7 +6,7 @@ import { BIKE_TYPES, Bike, BikeType } from '../../context/BikeContext';
 /* ─── Bike type icons ────────────────────────────────────────── */
 function BikeTypeIcon({ type, size = 32 }: { type: BikeType; size?: number }) {
   const s = size;
-  if (type === 'ROUTE') return (
+  if (type === 'road') return (
     <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
       <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
       <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
@@ -14,7 +14,7 @@ function BikeTypeIcon({ type, size = 32 }: { type: BikeType; size?: number }) {
       <circle cx="24" cy="8" r="2.5" fill="currentColor" />
     </svg>
   );
-  if (type === 'VTT') return (
+  if (type === 'mountain') return (
     <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
       <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="3" />
       <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="3" />
@@ -22,7 +22,7 @@ function BikeTypeIcon({ type, size = 32 }: { type: BikeType; size?: number }) {
       <path d="M14 8 Q18 4 22 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
-  if (type === 'GRAVEL') return (
+  if (type === 'gravel') return (
     <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
       <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 2" />
       <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 2" />
@@ -30,15 +30,7 @@ function BikeTypeIcon({ type, size = 32 }: { type: BikeType; size?: number }) {
       <circle cx="24" cy="8" r="2.5" fill="currentColor" />
     </svg>
   );
-  if (type === 'CYCLOCROSS') return (
-    <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
-      <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
-      <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
-      <path d="M8 24 L18 8 L32 8 M20 8 L28 24 M20 8 L24 14 L40 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M28 8 L36 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-  if (type === 'URBAIN') return (
+  if (type === 'urban') return (
     <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
       <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
       <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
@@ -46,13 +38,29 @@ function BikeTypeIcon({ type, size = 32 }: { type: BikeType; size?: number }) {
       <path d="M24 12 L26 6 L32 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
-  // E-BIKE
+  if (type === 'electric') return (
+    <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
+      <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
+      <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M8 24 L18 8 L32 8 M20 8 L28 24 M20 8 L24 14 L40 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M27 2 L23 9 L27 9 L23 16" stroke="#fce500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  if (type === 'bmx') return (
+    <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
+      <circle cx="10" cy="24" r="6" stroke="currentColor" strokeWidth="2.5" />
+      <circle cx="38" cy="24" r="6" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M10 24 L20 10 L30 10 M22 10 L28 24 M22 10 L24 16 L38 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 10 L16 5 L22 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  // triathlon — aero bars distinguishing feature
   return (
     <svg width={s} height={s} viewBox="0 0 48 32" fill="none">
       <circle cx="8" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
       <circle cx="40" cy="24" r="7" stroke="currentColor" strokeWidth="2.5" />
       <path d="M8 24 L18 8 L32 8 M20 8 L28 24 M20 8 L24 14 L40 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M27 4 L23 11 L27 11 L23 18" stroke="#fce500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M24 8 L30 8 L34 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -62,7 +70,7 @@ export interface BikeFormData {
   name: string;
   brand: string;
   model: string;
-  type: BikeType | '';
+  bikeType: BikeType | '';
   weight: string;
   purchaseDate: string;
   totalDistance: string;
@@ -70,48 +78,55 @@ export interface BikeFormData {
 
 function emptyForm(initial?: Bike): BikeFormData {
   return {
-    name:          initial?.name          ?? '',
-    brand:         initial?.brand         ?? '',
-    model:         initial?.model         ?? '',
-    type:          initial?.type          ?? '',
-    weight:        initial?.weight?.toString()        ?? '',
-    purchaseDate:  initial?.purchaseDate  ?? '',
+    name:          initial?.name               ?? '',
+    brand:         initial?.brand              ?? '',
+    model:         initial?.model              ?? '',
+    bikeType:      initial?.bikeType           ?? '',
+    weight:        initial?.weight?.toString() ?? '',
+    purchaseDate:  initial?.purchaseDate       ?? '',
     totalDistance: initial?.totalDistance?.toString() ?? '0',
   };
 }
 
 /* ─── Props ───────────────────────────────────────────────────── */
 interface Props {
-  /** Provided when editing an existing bike */
   bike?: Bike;
-  onSave: (data: Omit<Bike, 'id'>) => void;
+  onSave: (data: Omit<Bike, 'id'>) => Promise<void>;
   onClose: () => void;
-  /** Compact modal (true) vs embedded full-page (false) */
   asModal?: boolean;
 }
 
 export default function BikeForm({ bike, onSave, onClose, asModal = true }: Props) {
-  const [form, setForm] = useState<BikeFormData>(emptyForm(bike));
-  const [error, setError] = useState('');
+  const [form, setForm]             = useState<BikeFormData>(emptyForm(bike));
+  const [error, setError]           = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const set =
     <K extends keyof BikeFormData>(k: K) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm(prev => ({ ...prev, [k]: e.target.value }));
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.type) { setError('Veuillez choisir un type de vélo.'); return; }
+    if (!form.bikeType) { setError('Veuillez choisir un type de vélo.'); return; }
     if (!form.name.trim()) { setError('Le nom du vélo est requis.'); return; }
-    onSave({
-      name:          form.name.trim(),
-      brand:         form.brand.trim()  || undefined,
-      model:         form.model.trim()  || undefined,
-      type:          form.type as BikeType,
-      weight:        form.weight ? parseFloat(form.weight) : undefined,
-      purchaseDate:  form.purchaseDate  || undefined,
-      totalDistance: parseFloat(form.totalDistance)  || 0,
-    });
+    setError('');
+    setSubmitting(true);
+    try {
+      await onSave({
+        name:          form.name.trim(),
+        brand:         form.brand.trim()  || undefined,
+        model:         form.model.trim()  || undefined,
+        bikeType:      form.bikeType as BikeType,
+        weight:        form.weight ? parseFloat(form.weight) : undefined,
+        purchaseDate:  form.purchaseDate  || undefined,
+        totalDistance: parseFloat(form.totalDistance) || 0,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const body = (
@@ -136,29 +151,29 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
           <label className="block text-sm font-semibold text-[#000c34] mb-3">
             Type de vélo <span className="text-red-400">*</span>
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {BIKE_TYPES.map(bt => {
-              const active = form.type === bt.value;
+              const active = form.bikeType === bt.value;
               return (
                 <button
                   key={bt.value}
                   type="button"
-                  onClick={() => setForm(prev => ({ ...prev, type: bt.value }))}
+                  onClick={() => setForm(prev => ({ ...prev, bikeType: bt.value }))}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
                     active
                       ? 'border-[#27509b] bg-[#27509b]/5 text-[#27509b]'
                       : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
                   }`}
                 >
-                  <BikeTypeIcon type={bt.value} size={32} />
-                  <span className="text-[11px] font-black tracking-wide">{bt.label}</span>
+                  <BikeTypeIcon type={bt.value} size={28} />
+                  <span className="text-[10px] font-black tracking-wide leading-tight">{bt.label}</span>
                 </button>
               );
             })}
           </div>
-          {form.type && (
+          {form.bikeType && (
             <p className="text-gray-400 text-xs mt-2">
-              {BIKE_TYPES.find(b => b.value === form.type)?.description}
+              {BIKE_TYPES.find(b => b.value === form.bikeType)?.description}
             </p>
           )}
         </div>
@@ -257,15 +272,23 @@ export default function BikeForm({ bike, onSave, onClose, asModal = true }: Prop
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-h-[48px]"
+              disabled={submitting}
+              className="flex-1 px-4 py-3.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-h-[48px] disabled:opacity-50"
             >
               Annuler
             </button>
           )}
           <button
             type="submit"
-            className="flex-1 bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors min-h-[48px]"
+            disabled={submitting}
+            className="flex-1 bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors min-h-[48px] disabled:opacity-60 flex items-center justify-center gap-2"
           >
+            {submitting && (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
             {bike ? 'Enregistrer' : 'Ajouter ce vélo'}
           </button>
         </div>
