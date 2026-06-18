@@ -16,7 +16,12 @@ class ChallengeService
 	}
 
 	/**
-	 * @return array{0: ChallengeParticipation, 1: bool}
+	 * Allows a user to participate in a challenge.
+	 * 
+	 * @param User $user The user who wants to participate in the challenge.
+	 * @param int $challengeId The ID of the challenge the user wants to participate in
+	 * @return array An array containing the ChallengeParticipation entity and a boolean indicating whether it was newly created (true) or already existed (false).
+	 * @throws NotFoundHttpException If the challenge with the given ID does not exist.
 	 */
 	public function participate(User $user, int $challengeId): array
 	{

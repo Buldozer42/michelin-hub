@@ -352,7 +352,11 @@ class ActivityService
 	}
 
 	/**
-	 * @param Activity[] $activities
+	 * Updates the progress of ongoing challenge participations for the given user based on their activities.
+	 * 
+	 * @param User $user The user whose challenge participations are to be updated.
+	 * @param Activity[] $activities The list of activities to consider for updating challenge progress.
+	 * @throws \InvalidArgumentException If the challenge has no objectives or if an objective type is unknown or unsupported.
 	 */
 	private function updateOngoingChallengeParticipations(User $user, array $activities): void
 	{
@@ -362,7 +366,6 @@ class ActivityService
 		]);
 
 		$now = new \DateTimeImmutable();
-
 		foreach ($participations as $participation) {
 			if (!$participation instanceof ChallengeParticipation) {
 				continue;
@@ -388,6 +391,13 @@ class ActivityService
 		}
 	}
 
+	/**
+	 * Determines if a given challenge is currently ongoing based on its start and end dates.
+	 * 
+	 * @param Challenge $challenge The challenge to be checked.
+	 * @param \DateTimeImmutable $now The current date and time for comparison.
+	 * @return bool True if the challenge is ongoing, false otherwise.
+	 */
 	private function isChallengeOngoing(Challenge $challenge, \DateTimeImmutable $now): bool
 	{
 		$startDate = $challenge->getStartDate();
@@ -401,7 +411,12 @@ class ActivityService
 	}
 
 	/**
-	 * @param Activity[] $activities
+	 * Calculates the overall progress of a challenge based on its objectives and the provided activities.
+	 * 
+	 * @param Challenge $challenge The challenge for which the progress is to be calculated.
+	 * @param Activity[] $activities The list of activities to consider for the calculation.
+	 * @return float The calculated progress of the challenge, expressed as a percentage (0.0 to 100.0).
+	 * @throws \InvalidArgumentException If the challenge has no objectives or if an objective type is unknown or unsupported.
 	 */
 	private function calculateChallengeProgress(Challenge $challenge, array $activities): float
 	{
@@ -417,7 +432,6 @@ class ActivityService
 			if (!$objective instanceof Objective) {
 				continue;
 			}
-
 			$totalRatio += $this->calculateObjectiveRatio($objective, $challengeActivities);
 		}
 
@@ -425,9 +439,12 @@ class ActivityService
 	}
 
 	/**
-	 * @param Activity[] $activities
-	 *
-	 * @return Activity[]
+	 * Filters the given list of activities to include only those that fall within the start and end dates of the specified challenge.
+	 * 
+	 * @param array $activities The list of activities to be filtered.
+	 * @param Challenge $challenge The challenge whose start and end dates are used for filtering.
+	 * @return array The filtered list of activities that fall within the challenge's date range.
+	 * @throws \InvalidArgumentException If the challenge's start or end date is null.
 	 */
 	private function filterActivitiesForChallenge(array $activities, Challenge $challenge): array
 	{
@@ -447,7 +464,12 @@ class ActivityService
 	}
 
 	/**
-	 * @param Activity[] $activities
+	 * Calculates the ratio of progress for a given objective based on the provided activities.
+	 * 
+	 * @param Objective $objective The objective for which the ratio is to be calculated.
+	 * @param Activity[] $activities The list of activities to consider for the calculation.
+	 * @return float The calculated ratio of progress for the objective, expressed as a decimal value.
+	 * @throws \InvalidArgumentException If the objective type is unknown or unsupported.
 	 */
 	private function calculateObjectiveRatio(Objective $objective, array $activities): float
 	{
