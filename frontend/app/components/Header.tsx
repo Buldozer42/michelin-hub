@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { href: "/blog",      label: "Blog" },
-  { href: "/challenge",  label: "Challenge" },
-  { href: "/velo",       label: "Mon Vélo",  protected: true },
+  { href: "/blog",        label: "Blog" },
+  { href: "/challenge",   label: "Challenge" },
+  { href: "/revendeurs",  label: "Revendeurs" },
+  { href: "/velo",        label: "Mon Vélo",  protected: true },
 ] as const;
 
 function MichelinLogo() {

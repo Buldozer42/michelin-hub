@@ -1,4 +1,4 @@
-import SiteFooter from "../Footer";
+import Link from "next/link";
 import StravaSection from "./StravaSection";
 
 /** EcologicalImpact entity — community aggregate for this challenge */
@@ -83,12 +83,12 @@ export default function ChallengePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </a>
-                <a
-                  href="#"
+                <Link
+                  href="/revendeurs"
                   className="flex items-center justify-center gap-2 w-full border border-white/20 text-white/70 rounded-xl py-3 text-sm font-semibold hover:border-white/40 hover:text-white transition-colors"
                 >
                   Trouver un revendeur
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -170,6 +170,7 @@ export default function ChallengePage() {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
