@@ -204,30 +204,30 @@ function getStoredAuthHeaders(): Record<string, string> {
 
 export async function getArticles(): Promise<ApiArticle[]> {
   const data = await apiFetch<HydraCollection<ApiArticle>>(
-    "/api/articles?order%5BpublishedAt%5D=desc"
+    "/articles?order%5BpublishedAt%5D=desc"
   );
   return data.member;
 }
 
 export async function getArticleBySlug(slug: string): Promise<ApiArticle | null> {
   const data = await apiFetch<HydraCollection<ApiArticle>>(
-    `/api/articles?slug=${encodeURIComponent(slug)}`
+    `/articles?slug=${encodeURIComponent(slug)}`
   );
   return data.member[0] ?? null;
 }
 
 export async function getCategories(): Promise<ApiCategory[]> {
-  const data = await apiFetch<HydraCollection<ApiCategory>>("/api/categories");
+  const data = await apiFetch<HydraCollection<ApiCategory>>("/categories");
   return data.member;
 }
 
 export async function getTags(): Promise<ApiTag[]> {
-  const data = await apiFetch<HydraCollection<ApiTag>>("/api/tags");
+  const data = await apiFetch<HydraCollection<ApiTag>>("/tags");
   return data.member;
 }
 
 export async function getChallenges(): Promise<ApiChallenge[]> {
-  const data = await apiFetch<HydraCollection<ApiChallenge>>("/api/challenges");
+  const data = await apiFetch<HydraCollection<ApiChallenge>>("/challenges");
   return data.member;
 }
 
