@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { stravaGetAuthUrl, stravaExchangeToken, stravaRefreshToken } from '../lib/api';
+import { stravaGetAuthUrl, stravaExchangeToken, stravaRefreshToken, stravaSyncActivities, stravaDisconnect, type StravaSyncResponse } from '../lib/api';
 
 interface StravaAccount {
   stravaAccountId: number;
@@ -19,7 +19,8 @@ interface StravaContextType {
   connect: () => Promise<void>;
   exchangeCode: (code: string) => Promise<void>;
   refresh: () => Promise<void>;
-  disconnect: () => void;
+  syncActivities: () => Promise<StravaSyncResponse>;
+  disconnect: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -134,10 +135,24 @@ export function StravaProvider({ children }: { children: ReactNode }) {
     }
   }, [token, account, persistAccount]);
 
-  const disconnect = useCallback(() => {
+  const syncActivities = useCallback(async (): Promise<StravaSyncResponse> => {
+    if (!token) throw new Error('Non authentifie');
+    setError(null);
+    const result = await stravaSyncActivities(token);
+    return result;
+  }, [token]);
+
+  const disconnect = useCallback(async () => {
+    if (token) {
+      try {
+        await stravaDisconnect(token);
+      } catch {
+        // continue with local cleanup even if backend call fails
+      }
+    }
     persistAccount(null);
     localStorage.removeItem(STRAVA_PENDING_KEY);
-  }, [persistAccount]);
+  }, [token, persistAccount]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -150,6 +165,7 @@ export function StravaProvider({ children }: { children: ReactNode }) {
       connect,
       exchangeCode,
       refresh,
+      syncActivities,
       disconnect,
       clearError,
     }}>

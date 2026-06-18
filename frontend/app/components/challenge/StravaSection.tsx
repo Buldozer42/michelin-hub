@@ -11,19 +11,6 @@ type ObjectiveType = "DISTANCE" | "ELEVATION" | "FREQUENCY" | "DURATION";
 type ChallengeStatus = "DRAFT" | "ACTIVE" | "FINISHED" | "ARCHIVED";
 type ModalStep = "connect" | "connecting" | "sync" | "syncing" | "error" | "manage";
 
-interface Activity {
-  id: string;
-  stravaActivityId: string;
-  name: string;
-  distance: number;
-  movingTime: number;
-  elevationGain: number;
-  averageSpeed: number;
-  sportType: string;
-  startedAt: string;
-  gradient: string;
-}
-
 interface FeedActivity {
   id: string;
   initials: string;
@@ -59,30 +46,6 @@ const MOCK_PARTICIPATION = {
   joinedAt: "5 Oct. 2024",
 };
 
-const STRAVA_PENDING: Activity[] = [
-  {
-    id: "s1", stravaActivityId: "11234567890",
-    name: "Tour du Viaduc de Millau", distance: 67.3,
-    movingTime: 8100, elevationGain: 820, averageSpeed: 29.9,
-    sportType: "Ride", startedAt: "Hier",
-    gradient: "from-red-800 to-orange-600",
-  },
-  {
-    id: "s2", stravaActivityId: "11234567891",
-    name: "Montee du Ventoux", distance: 21.5,
-    movingTime: 6300, elevationGain: 1617, averageSpeed: 12.3,
-    sportType: "Ride", startedAt: "Il y a 3 jours",
-    gradient: "from-indigo-900 to-blue-600",
-  },
-  {
-    id: "s3", stravaActivityId: "11234567892",
-    name: "Sortie matinale Bordeaux", distance: 42.1,
-    movingTime: 5280, elevationGain: 210, averageSpeed: 28.7,
-    sportType: "Ride", startedAt: "Il y a 5 jours",
-    gradient: "from-amber-600 to-yellow-400",
-  },
-];
-
 const INITIAL_FEED: FeedActivity[] = [
   {
     id: "c1", initials: "JD", avatarBg: "bg-[#27509b]",
@@ -113,12 +76,6 @@ const INITIAL_FEED: FeedActivity[] = [
 ];
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
-
-function formatTime(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`;
-}
 
 function StravaLogo({ size = 28 }: { size?: number }) {
   return (
@@ -208,24 +165,21 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
 /* ─── Strava Modal ───────────────────────────────────────────────── */
 interface ModalProps {
   step: ModalStep;
-  selected: Set<string>;
   lastSync: string | null;
   userInitials: string;
   userDisplayName: string;
   connectError: string | null;
   onClose: () => void;
   onConnect: () => void;
-  onToggleActivity: (id: string) => void;
   onSync: () => void;
   onDisconnect: () => void;
   onManage: () => void;
 }
 
 function StravaModal({
-  step, selected, lastSync, userInitials, userDisplayName, connectError,
-  onClose, onConnect, onToggleActivity, onSync, onDisconnect, onManage,
+  step, lastSync, userInitials, userDisplayName, connectError,
+  onClose, onConnect, onSync, onDisconnect, onManage,
 }: ModalProps) {
-  const selectedCount = selected.size;
 
   return (
     <div
@@ -375,7 +329,7 @@ function StravaModal({
           </div>
         )}
 
-        {/* step: sync */}
+        {/* step: sync — one-click full sync via /api/activity/sync */}
         {step === "sync" && (
           <div className="p-6">
             <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
@@ -400,65 +354,20 @@ function StravaModal({
               <StravaLogo size={22} />
             </div>
 
-            <h3 className="font-title text-[#000c34] text-lg mb-1">Sorties recentes a importer</h3>
-            <p className="text-gray-400 text-xs mb-4">
-              Selectionnez les activites a ajouter au defi
+            <h3 className="font-title text-[#000c34] text-lg mb-1">Synchroniser vos activites</h3>
+            <p className="text-gray-400 text-xs mb-5">
+              Importez toutes vos sorties velo depuis Strava d&apos;un seul clic.
+              Le backend recupere, deduplique et enregistre automatiquement vos activites.
             </p>
-
-            <div className="space-y-2 mb-5">
-              {STRAVA_PENDING.map((a) => (
-                <label
-                  key={a.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    selected.has(a.id)
-                      ? "border-[#FC4C02] bg-orange-50"
-                      : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(a.id)}
-                    onChange={() => onToggleActivity(a.id)}
-                    className="sr-only"
-                  />
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    selected.has(a.id) ? "border-[#FC4C02] bg-[#FC4C02]" : "border-gray-300"
-                  }`}>
-                    {selected.has(a.id) && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-[#000c34] text-sm truncate">{a.name}</div>
-                    <div className="text-gray-400 text-[11px] flex items-center gap-2 mt-0.5">
-                      <span>{a.distance} km</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>+{a.elevationGain} m</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>{formatTime(a.movingTime)}</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>{a.averageSpeed} km/h moy.</span>
-                    </div>
-                  </div>
-                  <span className="text-gray-300 text-[10px] shrink-0">{a.startedAt}</span>
-                </label>
-              ))}
-            </div>
 
             <button
               onClick={onSync}
-              disabled={selectedCount === 0}
-              className={`w-full rounded-xl py-3.5 font-black text-sm transition-colors min-h-[48px] ${
-                selectedCount > 0
-                  ? "bg-[#fce500] text-[#000c34] hover:bg-yellow-300"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
+              className="w-full bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors min-h-[48px] flex items-center justify-center gap-2"
             >
-              {selectedCount > 0
-                ? `Synchroniser ${selectedCount} sortie${selectedCount > 1 ? "s" : ""}`
-                : "Selectionnez au moins une sortie"}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Synchroniser maintenant
             </button>
 
             <button
@@ -481,7 +390,7 @@ function StravaModal({
             </div>
             <div className="font-title text-[#000c34] text-lg mb-1">Synchronisation...</div>
             <p className="text-gray-400 text-sm text-center">
-              Import de {selectedCount} sortie{selectedCount > 1 ? "s" : ""} depuis Strava
+              Import des activites depuis Strava en cours
             </p>
           </div>
         )}
@@ -545,16 +454,14 @@ function DisconnectConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onC
 /* ─── Main export ────────────────────────────────────────────────── */
 export default function StravaSection() {
   const { user } = useAuth();
-  const { isConnected, loading: stravaLoading, error: stravaError, connect, disconnect, clearError } = useStrava();
+  const { isConnected, loading: stravaLoading, error: stravaError, connect, syncActivities, disconnect, clearError } = useStrava();
   const router = useRouter();
 
   const [isParticipating, setIsParticipating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>("connect");
-  const [selected, setSelected] = useState<Set<string>>(new Set(STRAVA_PENDING.map((a) => a.id)));
-  const [feedActivities, setFeedActivities] = useState<FeedActivity[]>(INITIAL_FEED);
+  const [feedActivities] = useState<FeedActivity[]>(INITIAL_FEED);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
   const [toastCount, setToastCount] = useState<number | null>(null);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
@@ -588,60 +495,33 @@ export default function StravaSection() {
     }
   }, [connect]);
 
-  const handleToggle = useCallback((id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
-  const handleSync = useCallback(() => {
-    const count = selected.size;
+  const handleSync = useCallback(async () => {
     setModalStep("syncing");
-
-    setTimeout(() => {
+    setSyncError(null);
+    try {
+      const result = await syncActivities();
       setLastSync("a l'instant");
       setIsParticipating(true);
-
-      const newActivities: FeedActivity[] = STRAVA_PENDING.filter(
-        (a) => selected.has(a.id) && !syncedIds.has(a.id)
-      ).map((a) => ({
-        id: a.id,
-        initials: userInitials,
-        avatarBg: "bg-[#FC4C02]",
-        name: userDisplayName,
-        when: `${a.startedAt} · Via Strava`,
-        title: a.name,
-        desc: `${a.sportType} · ${a.distance} km · +${a.elevationGain} m · ${a.averageSpeed} km/h moy.`,
-        gradient: `bg-gradient-to-br ${a.gradient}`,
-        stats: [
-          { label: "DISTANCE", value: `${a.distance} km` },
-          { label: "DENIVELE", value: `+${a.elevationGain} m` },
-          { label: "TEMPS", value: formatTime(a.movingTime) },
-        ],
-        fromStrava: true,
-      }));
-
-      setSyncedIds((prev) => new Set([...prev, ...selected]));
-      setFeedActivities((prev) => [...newActivities, ...prev]);
       setModalOpen(false);
-      if (newActivities.length > 0) setToastCount(count);
-    }, 1200);
-  }, [selected, syncedIds, userInitials, userDisplayName]);
+      if (result.synced > 0) {
+        setToastCount(result.synced);
+      }
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Erreur lors de la synchronisation");
+      setModalStep("error");
+    }
+  }, [syncActivities]);
 
   const handleDisconnect = useCallback(() => {
     setShowDisconnectConfirm(true);
   }, []);
 
-  const confirmDisconnect = useCallback(() => {
-    disconnect();
+  const confirmDisconnect = useCallback(async () => {
+    await disconnect();
     setIsParticipating(false);
     setLastSync(null);
-    setSyncedIds(new Set());
-    setSelected(new Set(STRAVA_PENDING.map((a) => a.id)));
-    setFeedActivities(INITIAL_FEED);
     setModalOpen(false);
     setShowDisconnectConfirm(false);
   }, [disconnect]);
@@ -778,14 +658,12 @@ export default function StravaSection() {
       {modalOpen && (
         <StravaModal
           step={modalStep}
-          selected={selected}
           lastSync={lastSync}
           userInitials={userInitials}
           userDisplayName={userDisplayName}
-          connectError={stravaError}
+          connectError={stravaError || syncError}
           onClose={() => setModalOpen(false)}
           onConnect={handleConnect}
-          onToggleActivity={handleToggle}
           onSync={handleSync}
           onDisconnect={handleDisconnect}
           onManage={() => setModalStep("sync")}
