@@ -46,6 +46,7 @@ export interface ApiChallenge {
   title: string;
   slug: string;
   description: string | null;
+  prerequisiteId?: number | null;
   startDate: string;
   endDate: string;
   createdAt: string;
@@ -434,6 +435,7 @@ export async function deleteTag(id: number): Promise<void> {
 export type ChallengePayload = {
   title: string;
   description?: string | null;
+  prerequisiteId?: number | null;
   startDate: string;
   endDate: string;
   objectives: {
