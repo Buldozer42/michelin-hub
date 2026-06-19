@@ -51,6 +51,7 @@ export interface ApiChallenge {
   createdAt: string;
   objectives: ApiChallengeObjective[];
   reward: ApiChallengeReward | null;
+  prerequisiteId: number | null;
 }
 
 interface HydraCollection<T> {
@@ -187,6 +188,7 @@ export interface SyncedActivity {
   locationCountry: string | null;
   averageSpeed: number;
   maxSpeed: number;
+  mapSummaryPolyline: string | null;
 }
 
 export interface StravaSyncResponse {
@@ -285,6 +287,54 @@ export async function getTags(): Promise<ApiTag[]> {
 export async function getChallenges(): Promise<ApiChallenge[]> {
   const data = await apiFetch<HydraCollection<ApiChallenge>>("/api/challenges");
   return data.member;
+}
+
+export interface ApiParticipation {
+  id: number;
+  challengeId: number;
+  progress: number;
+  completed: boolean;
+  joinedAt: string;
+  completedAt: string | null;
+}
+
+export async function getMyParticipations(token: string): Promise<ApiParticipation[]> {
+  const res = await fetch(`${API_BASE_URL}/api/me/participations`, {
+    headers: { Accept: 'application/json', ...bearerHeaders(token) },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+export interface ChallengeActivity {
+  id: number;
+  activityId: string;
+  name: string;
+  distance: number;
+  movingTime: number;
+  totalElevationGain: number;
+  sportType: string;
+  startedAt: string;
+  locationCity: string | null;
+  averageSpeed: number;
+  mapSummaryPolyline: string | null;
+}
+
+export async function getChallengeActivities(challengeId: number, token: string): Promise<ChallengeActivity[]> {
+  const res = await fetch(`${API_BASE_URL}/api/challenges/${challengeId}/activities`, {
+    headers: { Accept: 'application/json', ...bearerHeaders(token) },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+export async function participateChallenge(challengeId: number, token: string): Promise<{ participationId: number; created: boolean }> {
+  const res = await fetch(`${API_BASE_URL}/api/challenges/${challengeId}/participate`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...bearerHeaders(token) },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
 }
 
 async function apiPost<T>(path: string, body: unknown, ct = "application/ld+json"): Promise<T> {

@@ -110,6 +110,7 @@ class ActivityService
 				'locationCountry' => $a->getLocationCountry(),
 				'averageSpeed' => $a->getAverageSpeed(),
 				'maxSpeed' => $a->getMaxSpeed(),
+				'mapSummaryPolyline' => $a->getMapSummaryPolyline(),
 			], $syncedActivities),
 		];
 	}

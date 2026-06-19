@@ -230,6 +230,10 @@ class Challenge
     #[Groups(['challenge:read', 'challenge:write'])]
     private ?Reward $reward = null;
 
+    #[ORM\ManyToOne(targetEntity: Challenge::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Challenge $prerequisite = null;
+
     public function __construct()
     {
         $this->objectives = new ArrayCollection();
@@ -387,6 +391,23 @@ class Challenge
 
         $this->reward = $reward;
 
+        return $this;
+    }
+
+    public function getPrerequisite(): ?Challenge
+    {
+        return $this->prerequisite;
+    }
+
+    #[Groups(['challenge:read'])]
+    public function getPrerequisiteId(): ?int
+    {
+        return $this->prerequisite?->getId();
+    }
+
+    public function setPrerequisite(?Challenge $prerequisite): static
+    {
+        $this->prerequisite = $prerequisite;
         return $this;
     }
 

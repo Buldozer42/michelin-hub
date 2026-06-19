@@ -561,7 +561,6 @@ export default function MonVeloPage() {
     return (
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <EmptyBikes />
-        <SiteFooter />
       </div>
     );
   }

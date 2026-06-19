@@ -44,6 +44,68 @@ const GRADIENTS = [
   "from-cyan-500 to-blue-600",
 ];
 
+const GRADIENT_COLORS = [
+  ["#f97316", "#dc2626"],
+  ["#3b82f6", "#4338ca"],
+  ["#10b981", "#0f766e"],
+  ["#f59e0b", "#ea580c"],
+  ["#8b5cf6", "#7e22ce"],
+  ["#f43f5e", "#be185d"],
+  ["#06b6d4", "#2563eb"],
+];
+
+function decodePolyline(encoded: string): [number, number][] {
+  const points: [number, number][] = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
+}
+
+function RoutePreview({ polyline, colorIndex }: { polyline: string; colorIndex: number }) {
+  const points = decodePolyline(polyline);
+  if (points.length < 2) return null;
+
+  const lats = points.map((p) => p[0]);
+  const lngs = points.map((p) => p[1]);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const dLat = maxLat - minLat || 0.001;
+  const dLng = maxLng - minLng || 0.001;
+  const pad = 0.12;
+
+  const W = 300, H = 140;
+  const toX = (lng: number) => ((lng - minLng) / dLng) * W * (1 - 2 * pad) + W * pad;
+  const toY = (lat: number) => H - (((lat - minLat) / dLat) * H * (1 - 2 * pad) + H * pad);
+
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"}${toX(p[1]).toFixed(1)},${toY(p[0]).toFixed(1)}`).join(" ");
+  const colors = GRADIENT_COLORS[colorIndex % GRADIENT_COLORS.length];
+  const gradId = `rg${colorIndex}`;
+
+  return (
+    <div className="relative rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={colors[0]} />
+            <stop offset="100%" stopColor={colors[1]} />
+          </linearGradient>
+        </defs>
+        <path d={pathD} fill="none" stroke={`url(#${gradId})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+        <circle cx={toX(points[0][1])} cy={toY(points[0][0])} r="4" fill="#22c55e" />
+        <circle cx={toX(points[points.length - 1][1])} cy={toY(points[points.length - 1][0])} r="4" fill={colors[1]} />
+      </svg>
+    </div>
+  );
+}
+
 function StravaLogo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-label="Strava">
@@ -56,7 +118,7 @@ function StravaLogo({ size = 28 }: { size?: number }) {
 }
 
 function ActivityCard({ activity, index, isShared, onToggleShare }: {
-  activity: { id: number; activityId: string; name: string; distance: number; movingTime: number; totalElevationGain: number; sportType: string; startedAt: string; locationCity: string | null; locationCountry: string | null; averageSpeed: number };
+  activity: { id: number; activityId: string; name: string; distance: number; movingTime: number; totalElevationGain: number; sportType: string; startedAt: string; locationCity: string | null; locationCountry: string | null; averageSpeed: number; mapSummaryPolyline?: string | null };
   index: number;
   isShared: boolean;
   onToggleShare: () => void;
@@ -87,7 +149,13 @@ function ActivityCard({ activity, index, isShared, onToggleShare }: {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-100">
+        {activity.mapSummaryPolyline && (
+          <div className="mb-3">
+            <RoutePreview polyline={activity.mapSummaryPolyline} colorIndex={index} />
+          </div>
+        )}
+
+        <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-100">
           <div>
             <div className="text-gray-400 text-[9px] font-black tracking-widest">DISTANCE</div>
             <div className="text-[#000c34] font-black text-base">{formatDistance(activity.distance)} km</div>
