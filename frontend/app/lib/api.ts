@@ -61,10 +61,38 @@ interface HydraCollection<T> {
 
 const API_PREFIX = "/api";
 const AUTH_TOKEN_KEY = "michelin_hub_token";
+const PUBLIC_CACHE_TTL_MS = 60_000;
+
+type PublicCacheEntry = {
+  expiresAt: number;
+  data: unknown;
+};
+
+const publicResponseCache = new Map<string, PublicCacheEntry>();
+const publicInFlightRequests = new Map<string, Promise<unknown>>();
 
 function apiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_PREFIX}${normalizedPath}`;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function retryAfterToMs(retryAfterHeader: string | null): number | null {
+  if (!retryAfterHeader) return null;
+
+  const seconds = Number(retryAfterHeader);
+  if (Number.isFinite(seconds)) {
+    return Math.max(0, Math.round(seconds * 1000));
+  }
+
+  const dateMs = Date.parse(retryAfterHeader);
+  if (Number.isNaN(dateMs)) return null;
+  return Math.max(0, dateMs - Date.now());
 }
 
 /* ── Auth types ─────────────────────────────────────────────────────── */
@@ -243,17 +271,62 @@ export async function stravaDisconnect(token: string): Promise<void> {
 /* ── Generic fetchers ───────────────────────────────────────────────── */
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(apiUrl(path), {
-    cache: "no-store",
-    ...init,
-    headers: { Accept: "application/ld+json", ...(init?.headers ?? {}) },
-  });
+  const method = (init?.method ?? "GET").toUpperCase();
+  const maxAttempts = method === "GET" ? 2 : 1;
 
-  if (!response.ok) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetch(apiUrl(path), {
+      ...init,
+      headers: { Accept: "application/ld+json", ...(init?.headers ?? {}) },
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    if (response.status === 429 && attempt < maxAttempts) {
+      const retryAfterMs = retryAfterToMs(response.headers.get("retry-after"));
+      await delay(retryAfterMs ?? 1000);
+      continue;
+    }
+
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  throw new Error("API request failed");
+}
+
+async function apiFetchPublic<T>(path: string, init?: RequestInit): Promise<T> {
+  if (typeof window === "undefined") {
+    return apiFetch<T>(path, init);
+  }
+
+  const cacheKey = `${(init?.method ?? "GET").toUpperCase()}:${path}`;
+  const now = Date.now();
+  const cached = publicResponseCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data as T;
+  }
+
+  const inFlight = publicInFlightRequests.get(cacheKey);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
+  const request = apiFetch<T>(path, init)
+    .then((data) => {
+      publicResponseCache.set(cacheKey, {
+        expiresAt: Date.now() + PUBLIC_CACHE_TTL_MS,
+        data,
+      });
+      return data;
+    })
+    .finally(() => {
+      publicInFlightRequests.delete(cacheKey);
+    });
+
+  publicInFlightRequests.set(cacheKey, request as Promise<unknown>);
+  return request;
 }
 
 function getStoredAuthHeaders(): Record<string, string> {
@@ -266,31 +339,31 @@ function getStoredAuthHeaders(): Record<string, string> {
 }
 
 export async function getArticles(): Promise<ApiArticle[]> {
-  const data = await apiFetch<HydraCollection<ApiArticle>>(
+  const data = await apiFetchPublic<HydraCollection<ApiArticle>>(
     "/articles?order%5BpublishedAt%5D=desc"
   );
   return data.member;
 }
 
 export async function getArticleBySlug(slug: string): Promise<ApiArticle | null> {
-  const data = await apiFetch<HydraCollection<ApiArticle>>(
+  const data = await apiFetchPublic<HydraCollection<ApiArticle>>(
     `/articles?slug=${encodeURIComponent(slug)}`
   );
   return data.member[0] ?? null;
 }
 
 export async function getCategories(): Promise<ApiCategory[]> {
-  const data = await apiFetch<HydraCollection<ApiCategory>>("/categories");
+  const data = await apiFetchPublic<HydraCollection<ApiCategory>>("/categories");
   return data.member;
 }
 
 export async function getTags(): Promise<ApiTag[]> {
-  const data = await apiFetch<HydraCollection<ApiTag>>("/tags");
+  const data = await apiFetchPublic<HydraCollection<ApiTag>>("/tags");
   return data.member;
 }
 
 export async function getChallenges(): Promise<ApiChallenge[]> {
-  const data = await apiFetch<HydraCollection<ApiChallenge>>("/challenges");
+  const data = await apiFetchPublic<HydraCollection<ApiChallenge>>("/challenges");
   return data.member;
 }
 
