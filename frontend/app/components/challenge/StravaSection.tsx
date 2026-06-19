@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useStrava } from "../../context/StravaContext";
 import { useRouter } from "next/navigation";
+import type { SyncedActivity } from "../../lib/api";
 
 /* ─── Entity types ──────────────────────────────────────────────── */
 
 type ObjectiveType = "DISTANCE" | "ELEVATION" | "FREQUENCY" | "DURATION";
 type ChallengeStatus = "DRAFT" | "ACTIVE" | "FINISHED" | "ARCHIVED";
 type ModalStep = "connect" | "connecting" | "sync" | "syncing" | "error" | "manage";
-
-interface Activity {
-  id: string;
-  stravaActivityId: string;
-  name: string;
-  distance: number;
-  movingTime: number;
-  elevationGain: number;
-  averageSpeed: number;
-  sportType: string;
-  startedAt: string;
-  gradient: string;
-}
 
 interface FeedActivity {
   id: string;
@@ -32,7 +20,7 @@ interface FeedActivity {
   when: string;
   title: string;
   desc: string;
-  gradient: string;
+  image: string;
   tireName?: string;
   stats: { label: string; value: string }[];
   fromStrava?: boolean;
@@ -59,37 +47,13 @@ const MOCK_PARTICIPATION = {
   joinedAt: "5 Oct. 2024",
 };
 
-const STRAVA_PENDING: Activity[] = [
-  {
-    id: "s1", stravaActivityId: "11234567890",
-    name: "Tour du Viaduc de Millau", distance: 67.3,
-    movingTime: 8100, elevationGain: 820, averageSpeed: 29.9,
-    sportType: "Ride", startedAt: "Hier",
-    gradient: "from-red-800 to-orange-600",
-  },
-  {
-    id: "s2", stravaActivityId: "11234567891",
-    name: "Montee du Ventoux", distance: 21.5,
-    movingTime: 6300, elevationGain: 1617, averageSpeed: 12.3,
-    sportType: "Ride", startedAt: "Il y a 3 jours",
-    gradient: "from-indigo-900 to-blue-600",
-  },
-  {
-    id: "s3", stravaActivityId: "11234567892",
-    name: "Sortie matinale Bordeaux", distance: 42.1,
-    movingTime: 5280, elevationGain: 210, averageSpeed: 28.7,
-    sportType: "Ride", startedAt: "Il y a 5 jours",
-    gradient: "from-amber-600 to-yellow-400",
-  },
-];
-
 const INITIAL_FEED: FeedActivity[] = [
   {
     id: "c1", initials: "JD", avatarBg: "bg-[#27509b]",
     name: "Jean Dupont", when: "Il y a 2 heures · Paris, France",
     title: "Matinee Puissance sur les Quais",
     desc: "Test des nouveaux pneus Michelin Power Cup. Grip exceptionnel sur sol humide.",
-    gradient: "bg-gradient-to-br from-gray-700 to-gray-900",
+    image: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&h=400&fit=crop&q=80",
     tireName: "Michelin Power Cup",
     stats: [
       { label: "DISTANCE", value: "54.2 km" },
@@ -102,7 +66,7 @@ const INITIAL_FEED: FeedActivity[] = [
     name: "Marie Lefebvre", when: "Hier · Annecy, France",
     title: "Tour du Lac - Record Personnel !",
     desc: "Equipee en Michelin Lithion 2, une confiance totale dans les virages.",
-    gradient: "bg-gradient-to-br from-blue-600 via-teal-500 to-emerald-400",
+    image: "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=800&h=400&fit=crop&q=80",
     tireName: "Michelin Lithion 2",
     stats: [
       { label: "DISTANCE", value: "38.0 km" },
@@ -114,10 +78,63 @@ const INITIAL_FEED: FeedActivity[] = [
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
 
-function formatTime(seconds: number) {
+function formatDistance(m: number): string {
+  return (m / 1000).toFixed(1) + " km";
+}
+
+function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return h > 0 ? `${h}h ${m.toString().padStart(2, "0")}m` : `${m}m`;
+  const min = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h}h ${min.toString().padStart(2, "0")}m` : `${min}m`;
+}
+
+function formatElevation(m: number): string {
+  return Math.round(m) + " m";
+}
+
+function timeAgoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "A l'instant";
+  if (mins < 60) return `Il y a ${mins} min`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `Il y a ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Hier";
+  if (d < 7) return `Il y a ${d} jours`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+const STRAVA_FEED_IMAGES = [
+  "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&h=400&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=800&h=400&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&h=400&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1571188654248-7a89013e5f26?w=800&h=400&fit=crop&q=80",
+];
+
+function syncedToFeed(
+  a: SyncedActivity,
+  userName: string,
+  userInitials: string,
+  index: number,
+): FeedActivity {
+  const loc = [a.locationCity, a.locationCountry].filter(Boolean).join(", ");
+  return {
+    id: `strava-${a.activityId}`,
+    initials: userInitials,
+    avatarBg: "bg-[#FC4C02]",
+    name: userName,
+    when: `${timeAgoShort(a.startedAt)}${loc ? ` · ${loc}` : ""}`,
+    title: a.name,
+    desc: `Activite ${a.sportType.toLowerCase()} importee depuis Strava.`,
+    image: STRAVA_FEED_IMAGES[index % STRAVA_FEED_IMAGES.length],
+    fromStrava: true,
+    stats: [
+      { label: "DISTANCE", value: formatDistance(a.distance) },
+      { label: "DENIVELE", value: formatElevation(a.totalElevationGain) },
+      { label: "TEMPS", value: formatDuration(a.movingTime) },
+    ],
+  };
 }
 
 function StravaLogo({ size = 28 }: { size?: number }) {
@@ -131,8 +148,59 @@ function StravaLogo({ size = 28 }: { size?: number }) {
   );
 }
 
+/* ─── Feed interactions (localStorage) ─────────────────────────── */
+
+const FEED_INTERACTIONS_KEY = "michelin_feed_interactions";
+
+interface FeedComment {
+  id: string;
+  author: string;
+  initials: string;
+  content: string;
+  createdAt: string;
+}
+
+interface FeedInteractions {
+  [activityId: string]: {
+    kudos: string[];
+    comments: FeedComment[];
+  };
+}
+
+function loadInteractions(): FeedInteractions {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(FEED_INTERACTIONS_KEY) || "{}"); } catch { return {}; }
+}
+
+function saveInteractions(data: FeedInteractions) {
+  localStorage.setItem(FEED_INTERACTIONS_KEY, JSON.stringify(data));
+}
+
 /* ─── Feed card ──────────────────────────────────────────────────── */
-function FeedCard({ activity }: { activity: FeedActivity }) {
+function FeedCard({ activity, userName, userInitials, isLoggedIn, interactions, onToggleKudo, onAddComment, onDeleteComment }: {
+  activity: FeedActivity;
+  userName: string;
+  userInitials: string;
+  isLoggedIn: boolean;
+  interactions: { kudos: string[]; comments: FeedComment[] };
+  onToggleKudo: () => void;
+  onAddComment: (content: string) => void;
+  onDeleteComment: (commentId: string) => void;
+}) {
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+
+  const hasKudoed = interactions.kudos.includes(userName);
+  const kudoCount = interactions.kudos.length;
+  const commentCount = interactions.comments.length;
+
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    onAddComment(commentText.trim());
+    setCommentText("");
+  };
+
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-md">
       <div className="p-4">
@@ -170,7 +238,10 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
         )}
       </div>
 
-      <div className={`mx-4 rounded-xl h-36 ${activity.gradient}`} />
+      <div className="mx-4 rounded-xl h-36 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={activity.image} alt={activity.title} className="w-full h-full object-cover" />
+      </div>
 
       <div className="px-4 pt-3 pb-4">
         <div className="grid grid-cols-3 gap-2 border-b border-gray-100 pb-3">
@@ -181,25 +252,119 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-4 mt-3">
-          <button className="flex items-center gap-1.5 text-gray-400 text-sm font-medium hover:text-[#27509b] transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+        {/* Kudo names */}
+        {kudoCount > 0 && (
+          <div className="flex items-center gap-1.5 mt-2 mb-1">
+            <svg className="w-3.5 h-3.5 text-[#27509b]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905C11 8.102 9.5 9.5 7 10m7 0H7m0 0H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
+            </svg>
+            <span className="text-gray-500 text-[11px]">
+              {interactions.kudos.slice(0, 3).join(", ")}{kudoCount > 3 ? ` et ${kudoCount - 3} autre${kudoCount - 3 > 1 ? "s" : ""}` : ""}
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mt-2">
+          <button
+            onClick={isLoggedIn ? onToggleKudo : undefined}
+            className={`flex items-center gap-1.5 text-sm font-medium transition-all ${
+              hasKudoed
+                ? "text-[#27509b] font-black"
+                : isLoggedIn
+                  ? "text-gray-400 hover:text-[#27509b]"
+                  : "text-gray-300 cursor-default"
+            }`}
+            title={isLoggedIn ? (hasKudoed ? "Retirer le kudo" : "Donner un kudo") : "Connectez-vous pour kudoer"}
+          >
+            <svg className={`w-4 h-4 transition-transform ${hasKudoed ? "scale-110" : ""}`} fill={hasKudoed ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905C11 8.102 9.5 9.5 7 10m7 0H7m0 0H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
             </svg>
-            Kudo
+            {kudoCount > 0 ? kudoCount : "Kudo"}
           </button>
-          <button className="flex items-center gap-1.5 text-gray-400 text-sm hover:text-[#27509b] transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className={`flex items-center gap-1.5 text-sm transition-colors ${
+              showComments ? "text-[#27509b] font-bold" : "text-gray-400 hover:text-[#27509b]"
+            }`}
+          >
+            <svg className="w-4 h-4" fill={showComments ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            4
+            {commentCount > 0 ? commentCount : "Commenter"}
           </button>
-          <button className="ml-auto bg-[#fce500] text-[#000c34] text-[11px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
-            Acheter ce pneu
-          </button>
+          {activity.tireName && (
+            <button className="ml-auto bg-[#fce500] text-[#000c34] text-[11px] font-black px-3 py-1.5 rounded-lg hover:bg-yellow-300 transition-colors">
+              Acheter ce pneu
+            </button>
+          )}
         </div>
+
+        {/* Comments section */}
+        {showComments && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            {/* Comment list */}
+            {interactions.comments.length > 0 && (
+              <div className="space-y-2.5 mb-3">
+                {interactions.comments.map((c) => (
+                  <div key={c.id} className="flex gap-2">
+                    <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-[10px] font-black shrink-0">
+                      {c.initials}
+                    </div>
+                    <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-[#000c34] text-[11px]">{c.author}</span>
+                        <span className="text-gray-400 text-[10px]">{timeAgoShort(c.createdAt)}</span>
+                        {c.author === userName && (
+                          <button
+                            onClick={() => onDeleteComment(c.id)}
+                            className="ml-auto text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-gray-700 text-xs leading-relaxed">{c.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Comment input */}
+            {isLoggedIn ? (
+              <form onSubmit={handleSubmitComment} className="flex gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#27509b] flex items-center justify-center text-white text-[10px] font-black shrink-0">
+                  {userInitials}
+                </div>
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Ecrire un commentaire..."
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#27509b]/30 focus:border-[#27509b] bg-white"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim()}
+                    className="px-3 py-1.5 bg-[#27509b] text-white text-[11px] font-black rounded-lg hover:bg-[#1a3d7c] transition-colors disabled:opacity-40"
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="text-gray-400 text-[11px] text-center py-2">
+                Connectez-vous pour commenter.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -208,24 +373,21 @@ function FeedCard({ activity }: { activity: FeedActivity }) {
 /* ─── Strava Modal ───────────────────────────────────────────────── */
 interface ModalProps {
   step: ModalStep;
-  selected: Set<string>;
   lastSync: string | null;
   userInitials: string;
   userDisplayName: string;
   connectError: string | null;
   onClose: () => void;
   onConnect: () => void;
-  onToggleActivity: (id: string) => void;
   onSync: () => void;
   onDisconnect: () => void;
   onManage: () => void;
 }
 
 function StravaModal({
-  step, selected, lastSync, userInitials, userDisplayName, connectError,
-  onClose, onConnect, onToggleActivity, onSync, onDisconnect, onManage,
+  step, lastSync, userInitials, userDisplayName, connectError,
+  onClose, onConnect, onSync, onDisconnect, onManage,
 }: ModalProps) {
-  const selectedCount = selected.size;
 
   return (
     <div
@@ -375,7 +537,7 @@ function StravaModal({
           </div>
         )}
 
-        {/* step: sync */}
+        {/* step: sync — one-click full sync via /api/activity/sync */}
         {step === "sync" && (
           <div className="p-6">
             <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
@@ -400,65 +562,20 @@ function StravaModal({
               <StravaLogo size={22} />
             </div>
 
-            <h3 className="font-title text-[#000c34] text-lg mb-1">Sorties recentes a importer</h3>
-            <p className="text-gray-400 text-xs mb-4">
-              Selectionnez les activites a ajouter au defi
+            <h3 className="font-title text-[#000c34] text-lg mb-1">Synchroniser vos activites</h3>
+            <p className="text-gray-400 text-xs mb-5">
+              Importez toutes vos sorties velo depuis Strava d&apos;un seul clic.
+              Le backend recupere, deduplique et enregistre automatiquement vos activites.
             </p>
-
-            <div className="space-y-2 mb-5">
-              {STRAVA_PENDING.map((a) => (
-                <label
-                  key={a.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    selected.has(a.id)
-                      ? "border-[#FC4C02] bg-orange-50"
-                      : "border-gray-200 bg-gray-50 hover:border-gray-300"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(a.id)}
-                    onChange={() => onToggleActivity(a.id)}
-                    className="sr-only"
-                  />
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    selected.has(a.id) ? "border-[#FC4C02] bg-[#FC4C02]" : "border-gray-300"
-                  }`}>
-                    {selected.has(a.id) && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-[#000c34] text-sm truncate">{a.name}</div>
-                    <div className="text-gray-400 text-[11px] flex items-center gap-2 mt-0.5">
-                      <span>{a.distance} km</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>+{a.elevationGain} m</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>{formatTime(a.movingTime)}</span>
-                      <span className="text-gray-300">&middot;</span>
-                      <span>{a.averageSpeed} km/h moy.</span>
-                    </div>
-                  </div>
-                  <span className="text-gray-300 text-[10px] shrink-0">{a.startedAt}</span>
-                </label>
-              ))}
-            </div>
 
             <button
               onClick={onSync}
-              disabled={selectedCount === 0}
-              className={`w-full rounded-xl py-3.5 font-black text-sm transition-colors min-h-[48px] ${
-                selectedCount > 0
-                  ? "bg-[#fce500] text-[#000c34] hover:bg-yellow-300"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
+              className="w-full bg-[#fce500] text-[#000c34] rounded-xl py-3.5 font-black text-sm hover:bg-yellow-300 transition-colors min-h-[48px] flex items-center justify-center gap-2"
             >
-              {selectedCount > 0
-                ? `Synchroniser ${selectedCount} sortie${selectedCount > 1 ? "s" : ""}`
-                : "Selectionnez au moins une sortie"}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Synchroniser maintenant
             </button>
 
             <button
@@ -481,7 +598,7 @@ function StravaModal({
             </div>
             <div className="font-title text-[#000c34] text-lg mb-1">Synchronisation...</div>
             <p className="text-gray-400 text-sm text-center">
-              Import de {selectedCount} sortie{selectedCount > 1 ? "s" : ""} depuis Strava
+              Import des activites depuis Strava en cours
             </p>
           </div>
         )}
@@ -545,16 +662,13 @@ function DisconnectConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onC
 /* ─── Main export ────────────────────────────────────────────────── */
 export default function StravaSection() {
   const { user } = useAuth();
-  const { isConnected, loading: stravaLoading, error: stravaError, connect, disconnect, clearError } = useStrava();
+  const { isConnected, loading: stravaLoading, error: stravaError, connect, syncActivities, disconnect, clearError, activities: stravaActivities, sharedActivityIds } = useStrava();
   const router = useRouter();
 
   const [isParticipating, setIsParticipating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>("connect");
-  const [selected, setSelected] = useState<Set<string>>(new Set(STRAVA_PENDING.map((a) => a.id)));
-  const [feedActivities, setFeedActivities] = useState<FeedActivity[]>(INITIAL_FEED);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
   const [toastCount, setToastCount] = useState<number | null>(null);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
@@ -564,6 +678,13 @@ export default function StravaSection() {
   const userDisplayName = user
     ? `${user.firstName} ${user.lastName.charAt(0)}.`
     : "Utilisateur";
+
+  const feedActivities = useMemo<FeedActivity[]>(() => {
+    const sharedFeed = stravaActivities
+      .filter((a) => sharedActivityIds.includes(a.activityId))
+      .map((a, i) => syncedToFeed(a, userDisplayName, userInitials, i));
+    return [...sharedFeed, ...INITIAL_FEED];
+  }, [stravaActivities, sharedActivityIds, userDisplayName, userInitials]);
 
   const handleOpenModal = useCallback(() => {
     if (!user) {
@@ -588,63 +709,93 @@ export default function StravaSection() {
     }
   }, [connect]);
 
-  const handleToggle = useCallback((id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
-  const handleSync = useCallback(() => {
-    const count = selected.size;
+  const handleSync = useCallback(async () => {
     setModalStep("syncing");
-
-    setTimeout(() => {
+    setSyncError(null);
+    try {
+      const result = await syncActivities();
       setLastSync("a l'instant");
       setIsParticipating(true);
-
-      const newActivities: FeedActivity[] = STRAVA_PENDING.filter(
-        (a) => selected.has(a.id) && !syncedIds.has(a.id)
-      ).map((a) => ({
-        id: a.id,
-        initials: userInitials,
-        avatarBg: "bg-[#FC4C02]",
-        name: userDisplayName,
-        when: `${a.startedAt} · Via Strava`,
-        title: a.name,
-        desc: `${a.sportType} · ${a.distance} km · +${a.elevationGain} m · ${a.averageSpeed} km/h moy.`,
-        gradient: `bg-gradient-to-br ${a.gradient}`,
-        stats: [
-          { label: "DISTANCE", value: `${a.distance} km` },
-          { label: "DENIVELE", value: `+${a.elevationGain} m` },
-          { label: "TEMPS", value: formatTime(a.movingTime) },
-        ],
-        fromStrava: true,
-      }));
-
-      setSyncedIds((prev) => new Set([...prev, ...selected]));
-      setFeedActivities((prev) => [...newActivities, ...prev]);
       setModalOpen(false);
-      if (newActivities.length > 0) setToastCount(count);
-    }, 1200);
-  }, [selected, syncedIds, userInitials, userDisplayName]);
+      if (result.synced > 0) {
+        setToastCount(result.synced);
+      }
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Erreur lors de la synchronisation");
+      setModalStep("error");
+    }
+  }, [syncActivities]);
 
   const handleDisconnect = useCallback(() => {
     setShowDisconnectConfirm(true);
   }, []);
 
-  const confirmDisconnect = useCallback(() => {
-    disconnect();
+  const confirmDisconnect = useCallback(async () => {
+    await disconnect();
     setIsParticipating(false);
     setLastSync(null);
-    setSyncedIds(new Set());
-    setSelected(new Set(STRAVA_PENDING.map((a) => a.id)));
-    setFeedActivities(INITIAL_FEED);
     setModalOpen(false);
     setShowDisconnectConfirm(false);
   }, [disconnect]);
+
+  const [feedInteractions, setFeedInteractions] = useState<FeedInteractions>(loadInteractions);
+
+  const handleToggleKudo = useCallback((activityId: string) => {
+    setFeedInteractions((prev) => {
+      const entry = prev[activityId] || { kudos: [], comments: [] };
+      const hasKudo = entry.kudos.includes(userDisplayName);
+      const updated: FeedInteractions = {
+        ...prev,
+        [activityId]: {
+          ...entry,
+          kudos: hasKudo
+            ? entry.kudos.filter((n) => n !== userDisplayName)
+            : [...entry.kudos, userDisplayName],
+        },
+      };
+      saveInteractions(updated);
+      return updated;
+    });
+  }, [userDisplayName]);
+
+  const handleAddComment = useCallback((activityId: string, content: string) => {
+    setFeedInteractions((prev) => {
+      const entry = prev[activityId] || { kudos: [], comments: [] };
+      const newComment: FeedComment = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        author: userDisplayName,
+        initials: userInitials,
+        content,
+        createdAt: new Date().toISOString(),
+      };
+      const updated: FeedInteractions = {
+        ...prev,
+        [activityId]: {
+          ...entry,
+          comments: [...entry.comments, newComment],
+        },
+      };
+      saveInteractions(updated);
+      return updated;
+    });
+  }, [userDisplayName, userInitials]);
+
+  const handleDeleteComment = useCallback((activityId: string, commentId: string) => {
+    setFeedInteractions((prev) => {
+      const entry = prev[activityId] || { kudos: [], comments: [] };
+      const updated: FeedInteractions = {
+        ...prev,
+        [activityId]: {
+          ...entry,
+          comments: entry.comments.filter((c) => c.id !== commentId),
+        },
+      };
+      saveInteractions(updated);
+      return updated;
+    });
+  }, []);
 
   const progressKm = Math.round(CHALLENGE.objectiveValue * MOCK_PARTICIPATION.progress);
 
@@ -652,17 +803,13 @@ export default function StravaSection() {
     <>
       {/* ── Challenge hero ── */}
       <div className="rounded-2xl overflow-hidden relative bg-[#000c34] min-h-[240px] md:min-h-[320px]">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#000c34] via-[#0d1a5a] to-[#000c34]" />
-        <div className="absolute right-0 bottom-0 w-56 h-56 md:w-80 md:h-80 opacity-15">
-          <svg viewBox="0 0 200 200" className="w-full h-full">
-            <ellipse cx="130" cy="22" rx="16" ry="10" fill="white" />
-            <circle cx="130" cy="30" r="12" fill="white" />
-            <path d="M115 48 L95 108 L60 158 M115 48 L145 98 L165 158 M95 108 L145 98"
-              strokeWidth="10" stroke="white" fill="none" strokeLinecap="round" />
-            <circle cx="60" cy="158" r="22" strokeWidth="8" stroke="white" fill="none" />
-            <circle cx="165" cy="158" r="22" strokeWidth="8" stroke="white" fill="none" />
-          </svg>
-        </div>
+        <img
+          src="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1400&h=700&fit=crop&q=80"
+          alt="Peloton de cyclistes sur route"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#000c34]/90 via-[#000c34]/60 to-[#000c34]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#000c34]/70 via-transparent to-transparent" />
 
         <div className="relative z-10 p-6 md:p-12 max-w-xl">
           <div className="flex items-center gap-2 mb-4">
@@ -769,7 +916,17 @@ export default function StravaSection() {
 
         <div className="space-y-4">
           {feedActivities.map((a) => (
-            <FeedCard key={a.id} activity={a} />
+            <FeedCard
+              key={a.id}
+              activity={a}
+              userName={userDisplayName}
+              userInitials={userInitials}
+              isLoggedIn={!!user}
+              interactions={feedInteractions[a.id] || { kudos: [], comments: [] }}
+              onToggleKudo={() => handleToggleKudo(a.id)}
+              onAddComment={(content) => handleAddComment(a.id, content)}
+              onDeleteComment={(commentId) => handleDeleteComment(a.id, commentId)}
+            />
           ))}
         </div>
       </div>
@@ -778,14 +935,12 @@ export default function StravaSection() {
       {modalOpen && (
         <StravaModal
           step={modalStep}
-          selected={selected}
           lastSync={lastSync}
           userInitials={userInitials}
           userDisplayName={userDisplayName}
-          connectError={stravaError}
+          connectError={stravaError || syncError}
           onClose={() => setModalOpen(false)}
           onConnect={handleConnect}
-          onToggleActivity={handleToggle}
           onSync={handleSync}
           onDisconnect={handleDisconnect}
           onManage={() => setModalStep("sync")}

@@ -80,12 +80,38 @@ class ActivityService
 		$this->updateOngoingChallengeParticipations($user, $syncedActivities);
 		$this->entityManager->flush();
 
-		// Return the counts of synced, created, updated, and deleted activities
+		// Recalculate totalDistance for each bike based on linked activities
+		$bikes = $user->getBikes()->toArray();
+		if (count($bikes) === 1) {
+			$bike = $bikes[0];
+			$totalM = array_sum(array_map(fn($a) => $a->getDistance() ?? 0.0, $syncedActivities));
+			$bike->setTotalDistance($totalM / 1000.0);
+			$this->entityManager->persist($bike);
+			$this->entityManager->flush();
+		}
+
 		return [
 			'synced' => count($remoteActivities),
 			'created' => count($remoteActivities),
 			'updated' => 0,
 			'deleted' => $deleted,
+			'activities' => array_map(static fn (Activity $a) => [
+				'id' => $a->getId(),
+				'activityId' => $a->getActivityId(),
+				'name' => $a->getName(),
+				'distance' => $a->getDistance(),
+				'movingTime' => $a->getMovingTime(),
+				'elapsedTime' => $a->getElapsedTime(),
+				'totalElevationGain' => $a->getTotalElevationGain(),
+				'type' => $a->getType(),
+				'sportType' => $a->getSportType(),
+				'startedAt' => $a->getStartedAt()?->format(\DATE_ATOM),
+				'locationCity' => $a->getLocationCity(),
+				'locationCountry' => $a->getLocationCountry(),
+				'averageSpeed' => $a->getAverageSpeed(),
+				'maxSpeed' => $a->getMaxSpeed(),
+				'mapSummaryPolyline' => $a->getMapSummaryPolyline(),
+			], $syncedActivities),
 		];
 	}
 

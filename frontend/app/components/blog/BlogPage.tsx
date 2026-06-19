@@ -53,6 +53,7 @@ interface ArticleCardProps {
   category: string;
   categoryHex: string;
   gradient: string;
+  coverImage?: string | null;
   date?: string;
   readTime?: string;
   title: string;
@@ -64,24 +65,37 @@ interface ArticleCardProps {
 }
 
 function ArticleCard({
-  category, categoryHex, gradient, date, readTime,
+  category, categoryHex, gradient, coverImage, date, readTime,
   title, excerpt, viewCount, tags, featured = false, slug,
 }: ArticleCardProps) {
   const href = slug ? `/blog/${slug}` : "#";
   return (
     <article className={`bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group ${featured ? "md:flex-row" : ""}`}>
       <div className={`relative overflow-hidden ${featured ? "md:w-[45%] h-56 md:h-auto" : "h-52"}`}>
-        <div className="absolute inset-0" style={{ background: gradient }} />
-        <div className="absolute inset-0 flex items-end justify-end p-4 opacity-20">
-          <svg viewBox="0 0 120 120" className={`${featured ? "w-32 h-32" : "w-24 h-24"}`}>
-            <ellipse cx="78" cy="14" rx="10" ry="6" fill="white" />
-            <circle cx="78" cy="20" r="8" fill="white" />
-            <path d="M70 30 L58 66 L36 95 M70 30 L87 60 L99 95 M58 66 L87 60"
-              strokeWidth="6" stroke="white" fill="none" strokeLinecap="round" />
-            <circle cx="36" cy="95" r="14" strokeWidth="5" stroke="white" fill="none" />
-            <circle cx="99" cy="95" r="14" strokeWidth="5" stroke="white" fill="none" />
-          </svg>
-        </div>
+        {coverImage ? (
+          <>
+            <img
+              src={coverImage}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0" style={{ background: gradient }} />
+            <div className="absolute inset-0 flex items-end justify-end p-4 opacity-20">
+              <svg viewBox="0 0 120 120" className={`${featured ? "w-32 h-32" : "w-24 h-24"}`}>
+                <ellipse cx="78" cy="14" rx="10" ry="6" fill="white" />
+                <circle cx="78" cy="20" r="8" fill="white" />
+                <path d="M70 30 L58 66 L36 95 M70 30 L87 60 L99 95 M58 66 L87 60"
+                  strokeWidth="6" stroke="white" fill="none" strokeLinecap="round" />
+                <circle cx="36" cy="95" r="14" strokeWidth="5" stroke="white" fill="none" />
+                <circle cx="99" cy="95" r="14" strokeWidth="5" stroke="white" fill="none" />
+              </svg>
+            </div>
+          </>
+        )}
         <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm rounded-lg px-2.5 py-1 flex items-center gap-1.5">
           <svg className="w-3.5 h-3.5 fill-[#fce500]" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2C8.5 2 5.8 4.6 5.5 8H5c-1.7 0-3 1.3-3 3v1c0 1.7 1.3 3 3 3h1v1c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-1h1c1.7 0 3-1.3 3-3v-1c0-1.7-1.3-3-3-3h-.5C18.2 4.6 15.5 2 12 2zm0 2c2.5 0 4.5 2 4.5 4.5v.5h-9v-.5C7.5 6 9.5 4 12 4z" />
@@ -153,6 +167,7 @@ function articleToCardProps(article: ApiArticle, featured = false): ArticleCardP
     category: article.category?.name ?? "Article",
     categoryHex: hex,
     gradient: hexToGradient(hex),
+    coverImage: article.coverImage,
     date: formatDate(article.publishedAt),
     readTime: calcReadTime(article.content),
     viewCount: article.viewCount,
@@ -183,9 +198,10 @@ function SkeletonCard({ featured = false }: { featured?: boolean }) {
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function BlogPage() {
-  const [articles, setArticles]     = useState<ApiArticle[]>([]);
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [articles, setArticles]         = useState<ApiArticle[]>([]);
+  const [categories, setCategories]     = useState<ApiCategory[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([getArticles(), getCategories()])
@@ -194,53 +210,42 @@ export default function BlogPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const featured  = articles[0];
-  const gridItems = articles.slice(1, 4);
-  const sideItem  = articles[4] ?? articles[3] ?? null;
+  const filteredArticles = selectedCategory
+    ? articles.filter(a => a.category.id === selectedCategory)
+    : articles;
+
+  const featured  = filteredArticles[0];
+  const gridItems = filteredArticles.slice(1, 4);
+  const sideItem  = filteredArticles[4] ?? filteredArticles[3] ?? null;
 
   return (
     <div className="bg-white">
-      {/* ── Hero — full-bleed immersive ── */}
-      <section className="bg-[#000c34] relative overflow-hidden" aria-label="À la une">
-        <div className="absolute inset-0 overflow-hidden opacity-[0.07]">
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className="absolute h-px bg-white"
-              style={{ top: `${10 + i * 14}%`, left: '-8%', right: '-8%', transform: `rotate(-${2 + i * 0.4}deg)` }} />
-          ))}
-        </div>
-        <div className="absolute right-0 bottom-0 w-72 h-72 md:w-[500px] md:h-[500px] opacity-[0.08]">
-          <svg viewBox="0 0 200 200" className="w-full h-full">
-            <ellipse cx="130" cy="22" rx="16" ry="10" fill="white" />
-            <circle cx="130" cy="30" r="12" fill="white" />
-            <path d="M115 48 L95 108 L60 158 M115 48 L145 98 L165 158 M95 108 L145 98"
-              strokeWidth="10" stroke="white" fill="none" strokeLinecap="round" />
-            <circle cx="60" cy="158" r="22" strokeWidth="8" stroke="white" fill="none" />
-            <circle cx="165" cy="158" r="22" strokeWidth="8" stroke="white" fill="none" />
-          </svg>
-        </div>
+      {/* ── Hero — full-bleed photo ── */}
+      <section className="relative overflow-hidden h-[420px] md:h-[520px] lg:h-[600px]" aria-label="À la une">
+        <img
+          src="https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=1920&h=900&fit=crop&q=80"
+          alt="Cycliste sur route de montagne"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#000c34]/85 via-[#000c34]/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#000c34]/60 via-transparent to-[#000c34]/20" />
 
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 lg:py-32 relative z-10">
-          <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full tracking-[0.2em] uppercase mb-6">
-            À la une
+        <div className="relative z-10 h-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 md:pb-16 lg:pb-20">
+          <span className="inline-block bg-[#fce500] text-[#000c34] text-[10px] font-black px-4 py-1.5 rounded-full tracking-[0.2em] uppercase mb-5 w-fit">
+            Le Blog Michelin
           </span>
-          <h1 className="font-title text-white text-5xl md:text-6xl lg:text-7xl leading-tight max-w-2xl">
-            Passion &amp;<br />Puissance
+          <h1 className="font-title text-white text-4xl md:text-5xl lg:text-6xl leading-[1.1] max-w-xl">
+            Routes, conseils<br />&amp; inspiration
           </h1>
-          <p className="text-white/65 text-lg mt-5 leading-relaxed max-w-xl">
-            Relevez le défi d&apos;explorer les routes qui forgent les champions.
-            Chaque km compte — commencez à écrire votre légende ici.
+          <p className="text-white/75 text-base md:text-lg mt-4 leading-relaxed max-w-lg">
+            Itineraires legendaires, guides techniques et actus du peloton.
+            Tout pour rouler mieux, plus loin.
           </p>
-          <div className="flex flex-wrap items-center gap-3 mt-8">
-            <a href="#articles" className="inline-flex items-center gap-2 bg-[#fce500] text-[#000c34] font-black text-sm px-7 py-3.5 rounded-xl hover:bg-yellow-300 transition-colors min-h-[48px]">
-              Explorer le blog
+          <div className="flex flex-wrap items-center gap-3 mt-7">
+            <a href="#articles" className="inline-flex items-center gap-2 bg-[#fce500] text-[#000c34] font-black text-sm px-7 py-3.5 rounded-xl hover:bg-yellow-300 transition-colors min-h-[48px] shadow-lg">
+              Explorer les articles
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-            <a href="#" className="inline-flex items-center gap-2 text-white/70 text-sm font-semibold hover:text-white transition-colors">
-              Nos produits
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
             </a>
           </div>
@@ -251,13 +256,17 @@ export default function BlogPage() {
       <div className="border-b border-gray-100 bg-white sticky top-[68px] z-30">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 overflow-x-auto py-3 scrollbar-none">
-            <button className="flex-shrink-0 bg-[#000c34] text-white text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase transition-colors ${selectedCategory === null ? "bg-[#000c34] text-white" : "border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b]"}`}
+            >
               Tout
             </button>
             {categories.map(cat => (
               <button
                 key={cat.id}
-                className="flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b] transition-colors"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 text-[10px] font-black px-4 py-2 rounded-full tracking-widest uppercase transition-colors ${selectedCategory === cat.id ? "bg-[#000c34] text-white border-[#000c34]" : "border border-gray-200 text-[#53565a] hover:border-[#27509b] hover:text-[#27509b]"}`}
               >
                 {cat.name}
               </button>
@@ -280,7 +289,9 @@ export default function BlogPage() {
         {/* ── Articles grid ── */}
         <section aria-label="Derniers articles">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-title text-[#000c34] text-2xl">Derniers articles</h2>
+            <h2 className="font-title text-[#000c34] text-2xl">
+              {selectedCategory ? categories.find(c => c.id === selectedCategory)?.name ?? "Derniers articles" : "Derniers articles"}
+            </h2>
             <a href="#" className="text-[#27509b] text-sm font-bold hover:underline inline-flex items-center gap-1">
               Voir tout
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -3,11 +3,13 @@
 namespace App\Entity;
 
 use App\Controller\Strava\StravaAuthorizeController;
+use App\Controller\Strava\StravaDisconnectController;
 use App\Controller\Strava\StravaExchangeToken;
 use App\Controller\Strava\StravaRefreshTokenController;
 use App\Repository\StravaAccountRepository;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\OpenApi\Model\Operation;
@@ -69,6 +71,14 @@ use ApiPlatform\OpenApi\Model\Parameter;
             read: false,
             openapi: new Operation(
                 summary: 'Refresh token OAuth Strava',
+            ),
+        ),
+        new Delete(
+            uriTemplate: '/strava/disconnect',
+            controller: StravaDisconnectController::class,
+            read: false,
+            openapi: new Operation(
+                summary: 'Disconnect the Strava account linked to the authenticated user',
             ),
         ),
     ],

@@ -17,20 +17,51 @@ const ADMIN_NAV_ITEM = { href: "/edit", label: "Edition" } as const;
 function MichelinLogo() {
   return (
     <div className="flex items-center gap-0 shrink-0 select-none">
-      <div className="w-8 h-8 mr-2.5 shrink-0">
-        <svg viewBox="0 0 36 36" className="w-full h-full">
-          <ellipse cx="18" cy="9"  rx="7"  ry="7"  fill="#27509b" />
-          <ellipse cx="18" cy="20" rx="10" ry="7"  fill="#27509b" />
-          <ellipse cx="18" cy="31" rx="12" ry="6"  fill="#27509b" />
-          <circle cx="15" cy="7.5"  r="1.8" fill="white" />
-          <circle cx="21" cy="7.5"  r="1.8" fill="white" />
-          <path d="M14 13 Q18 16.5 22 13" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <div className="w-9 h-9 mr-2.5 shrink-0">
+        <svg viewBox="0 0 48 48" className="w-full h-full">
+          <defs>
+            <linearGradient id="tireGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3468b2" />
+              <stop offset="100%" stopColor="#1a3a78" />
+            </linearGradient>
+          </defs>
+          {/* Outer tire */}
+          <circle cx="24" cy="24" r="21" fill="url(#tireGrad)" />
+          {/* Tread grooves */}
+          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle) => {
+            const rad = (angle * Math.PI) / 180;
+            const x1 = 24 + 15 * Math.cos(rad);
+            const y1 = 24 + 15 * Math.sin(rad);
+            const x2 = 24 + 21 * Math.cos(rad);
+            const y2 = 24 + 21 * Math.sin(rad);
+            return (
+              <line key={angle} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="#27509b" strokeWidth="2.2" strokeLinecap="round" opacity="0.5" />
+            );
+          })}
+          {/* Inner rubber ring */}
+          <circle cx="24" cy="24" r="14" fill="#000c34" />
+          {/* Rim */}
+          <circle cx="24" cy="24" r="11" fill="none" stroke="#27509b" strokeWidth="1.5" opacity="0.6" />
+          {/* Spokes */}
+          {[0, 72, 144, 216, 288].map((angle) => {
+            const rad = (angle * Math.PI) / 180;
+            const x2 = 24 + 10.5 * Math.cos(rad);
+            const y2 = 24 + 10.5 * Math.sin(rad);
+            return (
+              <line key={angle} x1="24" y1="24" x2={x2} y2={y2}
+                stroke="#fce500" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+            );
+          })}
+          {/* Hub */}
+          <circle cx="24" cy="24" r="3.5" fill="#27509b" />
+          <circle cx="24" cy="24" r="1.8" fill="#fce500" />
         </svg>
       </div>
       <div className="flex flex-col leading-none">
         <span className="font-title text-[#000c34] text-[17px] tracking-[0.1em] leading-none">MICHELIN</span>
         <div className="h-[3px] bg-[#fce500] rounded-full mt-[3px]" />
-        <span className="text-[#53565a] text-[9px] font-semibold tracking-[0.25em] mt-[3px] leading-none">VÉLO HUB</span>
+        <span className="text-[#53565a] text-[9px] font-semibold tracking-[0.25em] mt-[3px] leading-none">VELO HUB</span>
       </div>
     </div>
   );

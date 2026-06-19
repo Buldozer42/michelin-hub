@@ -87,17 +87,17 @@ class Bike
     private ?User $owner = null;
 
     /**
-     * @var Collection<int, Tire>
+     * @var Collection<int, UserTire>
      */
-    #[ORM\OneToMany(targetEntity: Tire::class, mappedBy: 'bike', cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(targetEntity: UserTire::class, mappedBy: 'bike', cascade: ['persist', 'remove'])]
     #[ApiProperty(readableLink: true)]
     #[Groups(['bike:read'])]
-    private Collection $tires;
+    private Collection $userTires;
 
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
-        $this->tires = new ArrayCollection();
+        $this->userTires = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -231,28 +231,28 @@ class Bike
     }
 
     /**
-     * @return Collection<int, Tire>
+     * @return Collection<int, UserTire>
      */
-    public function getTires(): Collection
+    public function getUserTires(): Collection
     {
-        return $this->tires;
+        return $this->userTires;
     }
 
-    public function addTire(Tire $tire): static
+    public function addUserTire(UserTire $userTire): static
     {
-        if (!$this->tires->contains($tire)) {
-            $this->tires->add($tire);
-            $tire->setBike($this);
+        if (!$this->userTires->contains($userTire)) {
+            $this->userTires->add($userTire);
+            $userTire->setBike($this);
         }
 
         return $this;
     }
 
-    public function removeTire(Tire $tire): static
+    public function removeUserTire(UserTire $userTire): static
     {
-        if ($this->tires->removeElement($tire)) {
-            if ($tire->getBike() === $this) {
-                $tire->setBike(null);
+        if ($this->userTires->removeElement($userTire)) {
+            if ($userTire->getBike() === $this) {
+                $userTire->setBike(null);
             }
         }
 
