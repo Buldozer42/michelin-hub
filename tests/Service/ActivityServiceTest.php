@@ -116,10 +116,16 @@ class ActivityServiceTest extends TestCase
 
         $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
-        self::assertSame(
-            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
-            $service->syncUserActivities($user)
-        );
+        $result = $service->syncUserActivities($user);
+
+        self::assertSame(1, $result['synced']);
+        self::assertSame(1, $result['created']);
+        self::assertSame(0, $result['updated']);
+        self::assertSame(0, $result['deleted']);
+        self::assertArrayHasKey('activities', $result);
+        self::assertCount(1, $result['activities']);
+        self::assertSame('987654321', $result['activities'][0]['activityId']);
+        self::assertSame('Morning Ride', $result['activities'][0]['name']);
     }
 
     public function testSyncUserActivitiesDeletesExistingAndDeduplicatesRemoteIds(): void
@@ -205,10 +211,16 @@ class ActivityServiceTest extends TestCase
 
         $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
-        self::assertSame(
-            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 1],
-            $service->syncUserActivities($user)
-        );
+        $result = $service->syncUserActivities($user);
+
+        self::assertSame(1, $result['synced']);
+        self::assertSame(1, $result['created']);
+        self::assertSame(0, $result['updated']);
+        self::assertSame(1, $result['deleted']);
+        self::assertArrayHasKey('activities', $result);
+        self::assertCount(1, $result['activities']);
+        self::assertSame('222', $result['activities'][0]['activityId']);
+        self::assertSame('Ride latest payload', $result['activities'][0]['name']);
     }
 
     public function testSyncUserActivitiesAcceptsNumericKeyedPayloadWhenContentIsValid(): void
@@ -280,10 +292,16 @@ class ActivityServiceTest extends TestCase
 
         $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
-        self::assertSame(
-            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
-            $service->syncUserActivities($user)
-        );
+        $result = $service->syncUserActivities($user);
+
+        self::assertSame(1, $result['synced']);
+        self::assertSame(1, $result['created']);
+        self::assertSame(0, $result['updated']);
+        self::assertSame(0, $result['deleted']);
+        self::assertArrayHasKey('activities', $result);
+        self::assertCount(1, $result['activities']);
+        self::assertSame('18962321531', $result['activities'][0]['activityId']);
+        self::assertSame('Ride to die', $result['activities'][0]['name']);
     }
 
     public function testSyncUserActivitiesUpdatesOngoingChallengeParticipationProgress(): void
@@ -355,10 +373,16 @@ class ActivityServiceTest extends TestCase
 
         $service = new ActivityService($repository, $challengeParticipationRepository, $stravaService, $entityManager);
 
-        self::assertSame(
-            ['synced' => 1, 'created' => 1, 'updated' => 0, 'deleted' => 0],
-            $service->syncUserActivities($user)
-        );
+        $result = $service->syncUserActivities($user);
+
+        self::assertSame(1, $result['synced']);
+        self::assertSame(1, $result['created']);
+        self::assertSame(0, $result['updated']);
+        self::assertSame(0, $result['deleted']);
+        self::assertArrayHasKey('activities', $result);
+        self::assertCount(1, $result['activities']);
+        self::assertSame('333', $result['activities'][0]['activityId']);
+        self::assertSame('Progress ride', $result['activities'][0]['name']);
 
         self::assertSame(50.0, $participation->getProgress());
         self::assertFalse($participation->isCompleted());

@@ -205,7 +205,7 @@ export interface StravaSyncResponse {
 }
 
 export async function stravaSyncActivities(token: string): Promise<StravaSyncResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/activity/sync`, {
+  const res = await fetch(apiUrl('/activity/sync'), {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -229,7 +229,7 @@ export async function stravaSyncActivities(token: string): Promise<StravaSyncRes
 }
 
 export async function stravaDisconnect(token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/strava/disconnect`, {
+  const res = await fetch(apiUrl('/strava/disconnect'), {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -293,11 +293,6 @@ export async function getChallenges(): Promise<ApiChallenge[]> {
   return data.member;
 }
 
-export async function getChallenges(): Promise<ApiChallenge[]> {
-  const data = await apiFetch<HydraCollection<ApiChallenge>>("/api/challenges");
-  return data.member;
-}
-
 export interface ApiParticipation {
   id: number;
   challengeId: number;
@@ -308,7 +303,7 @@ export interface ApiParticipation {
 }
 
 export async function getMyParticipations(token: string): Promise<ApiParticipation[]> {
-  const res = await fetch(`${API_BASE_URL}/api/me/participations`, {
+  const res = await fetch(apiUrl('/me/participations'), {
     headers: { Accept: 'application/json', ...bearerHeaders(token) },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -330,7 +325,7 @@ export interface ChallengeActivity {
 }
 
 export async function getChallengeActivities(challengeId: number, token: string): Promise<ChallengeActivity[]> {
-  const res = await fetch(`${API_BASE_URL}/api/challenges/${challengeId}/activities`, {
+  const res = await fetch(apiUrl(`/challenges/${challengeId}/activities`), {
     headers: { Accept: 'application/json', ...bearerHeaders(token) },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -338,7 +333,7 @@ export async function getChallengeActivities(challengeId: number, token: string)
 }
 
 export async function participateChallenge(challengeId: number, token: string): Promise<{ participationId: number; created: boolean }> {
-  const res = await fetch(`${API_BASE_URL}/api/challenges/${challengeId}/participate`, {
+  const res = await fetch(apiUrl(`/challenges/${challengeId}/participate`), {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...bearerHeaders(token) },
   });
@@ -467,68 +462,6 @@ export async function deleteChallenge(id: number): Promise<void> {
   return apiDelete(`/challenges/${id}`);
 }
 
-export type ChallengePayload = {
-  title: string;
-  description?: string | null;
-  startDate: string;
-  endDate: string;
-  objectives: {
-    type: ChallengeObjectiveType;
-    value: number;
-  }[];
-  reward?: {
-    name: string;
-    description?: string | null;
-    image?: string | null;
-  } | null;
-};
-
-export async function createChallenge(data: ChallengePayload): Promise<ApiChallenge> {
-  return apiPost("/api/challenges", data);
-}
-
-export async function updateChallenge(
-  id: number,
-  data: Partial<ChallengePayload>
-): Promise<ApiChallenge> {
-  return apiPatch(`/api/challenges/${id}`, data);
-}
-
-export async function deleteChallenge(id: number): Promise<void> {
-  return apiDelete(`/api/challenges/${id}`);
-}
-
-export type ChallengePayload = {
-  title: string;
-  description?: string | null;
-  startDate: string;
-  endDate: string;
-  objectives: {
-    type: ChallengeObjectiveType;
-    value: number;
-  }[];
-  reward?: {
-    name: string;
-    description?: string | null;
-    image?: string | null;
-  } | null;
-};
-
-export async function createChallenge(data: ChallengePayload): Promise<ApiChallenge> {
-  return apiPost("/api/challenges", data);
-}
-
-export async function updateChallenge(
-  id: number,
-  data: Partial<ChallengePayload>
-): Promise<ApiChallenge> {
-  return apiPatch(`/api/challenges/${id}`, data);
-}
-
-export async function deleteChallenge(id: number): Promise<void> {
-  return apiDelete(`/api/challenges/${id}`);
-}
-
 /* ── Bike types & API ──────────────────────────────────────────────── */
 
 export type BikeTypeValue =
@@ -647,13 +580,13 @@ export interface ApiLike {
 
 export async function getArticleComments(articleId: number): Promise<ApiComment[]> {
   const data = await apiFetch<HydraCollection<ApiComment>>(
-    `/api/articles/${articleId}/comments?order%5BcreatedAt%5D=desc`,
+    `/articles/${articleId}/comments?order%5BcreatedAt%5D=desc`,
   );
   return data.member;
 }
 
 export async function postComment(articleId: number, content: string, token: string): Promise<ApiComment> {
-  const res = await fetch(`${API_BASE_URL}/api/comments`, {
+  const res = await fetch(apiUrl('/comments'), {
     method: 'POST',
     headers: {
       Accept: 'application/ld+json',
@@ -667,7 +600,7 @@ export async function postComment(articleId: number, content: string, token: str
 }
 
 export async function deleteComment(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/comments/${id}`, {
+  const res = await fetch(apiUrl(`/comments/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
@@ -676,13 +609,13 @@ export async function deleteComment(id: number, token: string): Promise<void> {
 
 export async function getArticleLikes(articleId: number): Promise<ApiLike[]> {
   const data = await apiFetch<HydraCollection<ApiLike>>(
-    `/api/articles/${articleId}/likes`,
+    `/articles/${articleId}/likes`,
   );
   return data.member;
 }
 
 export async function postLike(articleId: number, token: string): Promise<ApiLike> {
-  const res = await fetch(`${API_BASE_URL}/api/article_likes`, {
+  const res = await fetch(apiUrl('/article_likes'), {
     method: 'POST',
     headers: {
       Accept: 'application/ld+json',
@@ -696,7 +629,7 @@ export async function postLike(articleId: number, token: string): Promise<ApiLik
 }
 
 export async function deleteLike(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/article_likes/${id}`, {
+  const res = await fetch(apiUrl(`/article_likes/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
@@ -723,12 +656,12 @@ async function adminError(res: Response): Promise<never> {
 }
 
 export async function getGums(): Promise<ApiGum[]> {
-  const data = await apiFetch<HydraCollection<ApiGum>>('/api/gums');
+  const data = await apiFetch<HydraCollection<ApiGum>>('/gums');
   return data.member;
 }
 
 export async function createGum(payload: GumPayload, token: string): Promise<ApiGum> {
-  const res = await fetch(`${API_BASE_URL}/api/gums`, {
+  const res = await fetch(apiUrl('/gums'), {
     method: 'POST',
     headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
     body: JSON.stringify(payload),
@@ -738,7 +671,7 @@ export async function createGum(payload: GumPayload, token: string): Promise<Api
 }
 
 export async function updateGum(id: number, payload: Partial<GumPayload>, token: string): Promise<ApiGum> {
-  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
+  const res = await fetch(apiUrl(`/gums/${id}`), {
     method: 'PATCH',
     headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
     body: JSON.stringify(payload),
@@ -748,7 +681,7 @@ export async function updateGum(id: number, payload: Partial<GumPayload>, token:
 }
 
 export async function deleteGum(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
+  const res = await fetch(apiUrl(`/gums/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
@@ -773,12 +706,12 @@ export type TireLinePayload = {
 };
 
 export async function getTireLines(): Promise<ApiTireLine[]> {
-  const data = await apiFetch<HydraCollection<ApiTireLine>>('/api/tire_lines');
+  const data = await apiFetch<HydraCollection<ApiTireLine>>('/tire_lines');
   return data.member;
 }
 
 export async function createTireLine(payload: TireLinePayload, token: string): Promise<ApiTireLine> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines`, {
+  const res = await fetch(apiUrl('/tire_lines'), {
     method: 'POST',
     headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
     body: JSON.stringify(payload),
@@ -788,7 +721,7 @@ export async function createTireLine(payload: TireLinePayload, token: string): P
 }
 
 export async function updateTireLine(id: number, payload: Partial<TireLinePayload>, token: string): Promise<ApiTireLine> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
+  const res = await fetch(apiUrl(`/tire_lines/${id}`), {
     method: 'PATCH',
     headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
     body: JSON.stringify(payload),
@@ -798,7 +731,7 @@ export async function updateTireLine(id: number, payload: Partial<TireLinePayloa
 }
 
 export async function deleteTireLine(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
+  const res = await fetch(apiUrl(`/tire_lines/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
@@ -827,7 +760,7 @@ export interface ApiTireModel {
 }
 
 export async function getTireCatalog(): Promise<ApiTireModel[]> {
-  const data = await apiFetch<HydraCollection<ApiTireModel>>('/api/tires?itemsPerPage=200');
+  const data = await apiFetch<HydraCollection<ApiTireModel>>('/tires?itemsPerPage=200');
   return data.member;
 }
 
@@ -858,14 +791,14 @@ export type UserTirePayload = {
 };
 
 export async function getUserTires(token: string): Promise<ApiUserTire[]> {
-  const data = await apiFetch<HydraCollection<ApiUserTire>>('/api/user_tires', {
+  const data = await apiFetch<HydraCollection<ApiUserTire>>('/user_tires', {
     headers: bearerHeaders(token),
   });
   return data.member;
 }
 
 export async function createUserTire(payload: UserTirePayload, token: string): Promise<ApiUserTire> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires`, {
+  const res = await fetch(apiUrl('/user_tires'), {
     method: 'POST',
     headers: {
       Accept: 'application/ld+json',
@@ -883,7 +816,7 @@ export async function patchUserTire(
   payload: Partial<UserTirePayload>,
   token: string,
 ): Promise<ApiUserTire> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
+  const res = await fetch(apiUrl(`/user_tires/${id}`), {
     method: 'PATCH',
     headers: {
       Accept: 'application/ld+json',
@@ -897,287 +830,7 @@ export async function patchUserTire(
 }
 
 export async function destroyUserTire(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
-    method: 'DELETE',
-    headers: bearerHeaders(token),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-}
-
-/* ── Comments & Likes ──────────────────────────────────────────────── */
-
-export interface ApiCommentAuthor {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-}
-
-export interface ApiComment {
-  id: number;
-  content: string;
-  createdAt: string;
-  author: ApiCommentAuthor;
-}
-
-export interface ApiLike {
-  id: number;
-  user: { id: number };
-}
-
-export async function getArticleComments(articleId: number): Promise<ApiComment[]> {
-  const data = await apiFetch<HydraCollection<ApiComment>>(
-    `/api/articles/${articleId}/comments?order%5BcreatedAt%5D=desc`,
-  );
-  return data.member;
-}
-
-export async function postComment(articleId: number, content: string, token: string): Promise<ApiComment> {
-  const res = await fetch(`${API_BASE_URL}/api/comments`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/ld+json',
-      'Content-Type': 'application/ld+json',
-      ...bearerHeaders(token),
-    },
-    body: JSON.stringify({ article: `/api/articles/${articleId}`, content }),
-  });
-  if (!res.ok) return apiBikeError(res);
-  return res.json();
-}
-
-export async function deleteComment(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/comments/${id}`, {
-    method: 'DELETE',
-    headers: bearerHeaders(token),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-}
-
-export async function getArticleLikes(articleId: number): Promise<ApiLike[]> {
-  const data = await apiFetch<HydraCollection<ApiLike>>(
-    `/api/articles/${articleId}/likes`,
-  );
-  return data.member;
-}
-
-export async function postLike(articleId: number, token: string): Promise<ApiLike> {
-  const res = await fetch(`${API_BASE_URL}/api/article_likes`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/ld+json',
-      'Content-Type': 'application/ld+json',
-      ...bearerHeaders(token),
-    },
-    body: JSON.stringify({ article: `/api/articles/${articleId}` }),
-  });
-  if (!res.ok) return apiBikeError(res);
-  return res.json();
-}
-
-export async function deleteLike(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/article_likes/${id}`, {
-    method: 'DELETE',
-    headers: bearerHeaders(token),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-}
-
-/* ── Gum (admin write) ─────────────────────────────────────────────────── */
-
-export interface ApiGum {
-  id: number;
-  name: string;
-  gripType: string;
-}
-
-export type GumPayload = { name: string; gripType: string };
-
-async function adminError(res: Response): Promise<never> {
-  const body = await res.json().catch(() => ({}));
-  const msg =
-    (body as Record<string, string>)['hydra:description'] ??
-    (body as Record<string, string>)['detail'] ??
-    `${res.status} ${res.statusText}`;
-  throw new Error(msg);
-}
-
-export async function getGums(): Promise<ApiGum[]> {
-  const data = await apiFetch<HydraCollection<ApiGum>>('/api/gums');
-  return data.member;
-}
-
-export async function createGum(payload: GumPayload, token: string): Promise<ApiGum> {
-  const res = await fetch(`${API_BASE_URL}/api/gums`, {
-    method: 'POST',
-    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return adminError(res);
-  return res.json();
-}
-
-export async function updateGum(id: number, payload: Partial<GumPayload>, token: string): Promise<ApiGum> {
-  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
-    method: 'PATCH',
-    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return adminError(res);
-  return res.json();
-}
-
-export async function deleteGum(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/gums/${id}`, {
-    method: 'DELETE',
-    headers: bearerHeaders(token),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-}
-
-/* ── TireLine (admin write) ────────────────────────────────────────────── */
-
-export interface ApiTireLine {
-  id: number;
-  name: string;
-  manufacturer: string;
-  description: string | null;
-  url: string | null;
-}
-
-export type TireLinePayload = {
-  name: string;
-  manufacturer: string;
-  description?: string | null;
-  url?: string | null;
-};
-
-export async function getTireLines(): Promise<ApiTireLine[]> {
-  const data = await apiFetch<HydraCollection<ApiTireLine>>('/api/tire_lines');
-  return data.member;
-}
-
-export async function createTireLine(payload: TireLinePayload, token: string): Promise<ApiTireLine> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines`, {
-    method: 'POST',
-    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/ld+json', ...bearerHeaders(token) },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return adminError(res);
-  return res.json();
-}
-
-export async function updateTireLine(id: number, payload: Partial<TireLinePayload>, token: string): Promise<ApiTireLine> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
-    method: 'PATCH',
-    headers: { Accept: 'application/ld+json', 'Content-Type': 'application/merge-patch+json', ...bearerHeaders(token) },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return adminError(res);
-  return res.json();
-}
-
-export async function deleteTireLine(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/tire_lines/${id}`, {
-    method: 'DELETE',
-    headers: bearerHeaders(token),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-}
-
-/* ── Tire catalog (public read) ──────────────────────────────────────── */
-
-export interface ApiTireModel {
-  id: number;
-  cai: string;
-  brand: string;
-  model: string;
-  fitting: string;
-  sealing: string;
-  outerDiameter: number;
-  sectionWidth: number;
-  etrto: string;
-  tpi: string;
-  weight: number;
-  minPressureBar: number | null;
-  maxPressureBar: number | null;
-  terrainTypes: string | null;
-  tireLine: string | { id: number; name: string; manufacturer: string };
-  gum: string | { id: number; name: string } | null;
-}
-
-export async function getTireCatalog(): Promise<ApiTireModel[]> {
-  const data = await apiFetch<HydraCollection<ApiTireModel>>('/api/tires?itemsPerPage=200');
-  return data.member;
-}
-
-/* ── UserTire ─────────────────────────────────────────────────────────── */
-
-export interface ApiUserTire {
-  id: number;
-  bike: string | null;
-  tireModel: ApiTireModel | null;
-  customName: string | null;
-  position: 'front' | 'rear' | null;
-  installedAtKm: number;
-  removedAtKm: number | null;
-  expectedLifespanKm: number | null;
-  retiredAt: string | null;
-  createdAt: string;
-}
-
-export type UserTirePayload = {
-  bike?: string | null;
-  tireModel?: string | null;
-  customName?: string | null;
-  position?: 'front' | 'rear' | null;
-  installedAtKm?: number;
-  removedAtKm?: number | null;
-  expectedLifespanKm?: number | null;
-  retiredAt?: string | null;
-};
-
-export async function getUserTires(token: string): Promise<ApiUserTire[]> {
-  const data = await apiFetch<HydraCollection<ApiUserTire>>('/api/user_tires', {
-    headers: bearerHeaders(token),
-  });
-  return data.member;
-}
-
-export async function createUserTire(payload: UserTirePayload, token: string): Promise<ApiUserTire> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/ld+json',
-      'Content-Type': 'application/ld+json',
-      ...bearerHeaders(token),
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return apiBikeError(res);
-  return res.json();
-}
-
-export async function patchUserTire(
-  id: number,
-  payload: Partial<UserTirePayload>,
-  token: string,
-): Promise<ApiUserTire> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
-    method: 'PATCH',
-    headers: {
-      Accept: 'application/ld+json',
-      'Content-Type': 'application/merge-patch+json',
-      ...bearerHeaders(token),
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return apiBikeError(res);
-  return res.json();
-}
-
-export async function destroyUserTire(id: number, token: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/user_tires/${id}`, {
+  const res = await fetch(apiUrl(`/user_tires/${id}`), {
     method: 'DELETE',
     headers: bearerHeaders(token),
   });
