@@ -26,7 +26,6 @@ final class Version20260619051439 extends AbstractMigration
         $this->addSql('ALTER TABLE article_like ADD CONSTRAINT FK_1C21C7B2A76ED395 FOREIGN KEY (user_id) REFERENCES user (id)');
         $this->addSql('ALTER TABLE comment ADD CONSTRAINT FK_9474526C7294869C FOREIGN KEY (article_id) REFERENCES article (id)');
         $this->addSql('ALTER TABLE comment ADD CONSTRAINT FK_9474526CF675F31B FOREIGN KEY (author_id) REFERENCES user (id)');
-        $this->addSql('ALTER TABLE bike ADD CONSTRAINT FK_4CBC37807E3C61F9 FOREIGN KEY (owner_id) REFERENCES user (id)');
         $this->addSql('ALTER TABLE challenge ADD prerequisite_id INT DEFAULT NULL');
         $this->addSql('ALTER TABLE challenge ADD CONSTRAINT FK_D7098951276AF86B FOREIGN KEY (prerequisite_id) REFERENCES challenge (id) ON DELETE SET NULL');
         $this->addSql('CREATE INDEX IDX_D7098951276AF86B ON challenge (prerequisite_id)');
@@ -52,7 +51,6 @@ final class Version20260619051439 extends AbstractMigration
         $this->addSql('ALTER TABLE comment DROP FOREIGN KEY FK_9474526CF675F31B');
         $this->addSql('DROP TABLE article_like');
         $this->addSql('DROP TABLE comment');
-        $this->addSql('ALTER TABLE bike DROP FOREIGN KEY FK_4CBC37807E3C61F9');
         $this->addSql('ALTER TABLE challenge DROP FOREIGN KEY FK_D7098951276AF86B');
         $this->addSql('DROP INDEX IDX_D7098951276AF86B ON challenge');
         $this->addSql('ALTER TABLE challenge DROP prerequisite_id');
